@@ -15,6 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 public class CommandHandler extends ListenerAdapter {
     private final ScheduledExecutorService messageMurderer = Executors.newScheduledThreadPool(2);
@@ -34,10 +35,10 @@ public class CommandHandler extends ListenerAdapter {
     private final boolean sendTyping;
 
     public CommandHandler(JDA jda) {
-        this(jda, "!", new DefaultCommandResponses(), new ArrayList<>(), true, 2, true, 10, true, 20, false, true);
+        this(jda, "!", new DefaultCommandResponses(), new ArrayList<>(), true, 2, true, 10, true, 20, false, 5, true);
     }
 
-    public CommandHandler(JDA jda, String prefix, CommandResponses responses, List<Object> customParams, boolean concurrent, int threadPoolSize, boolean deleteCommands, int deleteCommandLength, boolean deleteResponse, int deleteResponseLength, boolean help, boolean sendTyping) {
+    public CommandHandler(JDA jda, String prefix, CommandResponses responses, List<Object> customParams, boolean concurrent, int threadPoolSize, boolean deleteCommands, int deleteCommandLength, boolean deleteResponse, int deleteResponseLength, boolean help, int entriesPerPage, boolean sendTyping) {
         this.jda = jda;
         this.prefix = prefix;
         this.responses = responses;
@@ -52,8 +53,10 @@ public class CommandHandler extends ListenerAdapter {
         this.deleteResponseLength = deleteResponseLength;
 
         if (help) {
-            register(new HelpCommand());
-            getCommand(HelpCommand.class).ifPresent(loadedCommand -> loadedCommand.addCustomParam(this.getAllRecursive()));
+            register(new HelpCommand(entriesPerPage, prefix));
+            getCommand(HelpCommand.class).ifPresent(loadedCommand -> loadedCommand.addCustomParam((Supplier<Set<LoadedCommand>>) () -> {
+                return getAllRecursive();
+            }));
         }
         this.sendTyping = sendTyping;
 

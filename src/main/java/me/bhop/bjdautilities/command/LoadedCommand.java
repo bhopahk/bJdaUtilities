@@ -111,7 +111,6 @@ public class LoadedCommand {
             return usage(member, channel, message, label, arguments) ? CommandResult.SUCCESS : CommandResult.INVALID_ARGUMENTS;
 
         try {
-            System.out.println("For " + getCommandClass().getName() + " params size = " + customParams.size());
             if (customParams.size() == 0)
                 return (CommandResult) execute.invoke(instance, member, channel, message, label, arguments);
             else {

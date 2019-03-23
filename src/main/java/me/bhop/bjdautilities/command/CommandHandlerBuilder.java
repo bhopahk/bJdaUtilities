@@ -26,8 +26,9 @@ public class CommandHandlerBuilder {
     private boolean deleteResponse = true;
     private int deleteResponseLength = 20;
 
-    // Generate Help
+    // Auto Generated Help
     private boolean help = false;
+    private int entriesPerHelpPage = 5;
     // Send typing before a response
     private boolean sendTyping = true;
     // Whether to search for commands in the classpath and register them. This is moderately slow.
@@ -82,6 +83,10 @@ public class CommandHandlerBuilder {
         this.help = generate;
         return this;
     }
+    public CommandHandlerBuilder setEntriesPerHelpPage(int entries) {
+        entriesPerHelpPage = entries;
+        return this;
+    }
 
     public CommandHandlerBuilder setSendTyping(boolean sendTyping) {
         this.sendTyping = sendTyping;
@@ -94,6 +99,6 @@ public class CommandHandlerBuilder {
     }
 
     public CommandHandler build() {
-        return new CommandHandler(jda, prefix, responses, customParams, concurrent, threadPoolSize, deleteCommands, deleteCommandLength, deleteResponse, deleteResponseLength, help, sendTyping);
+        return new CommandHandler(jda, prefix, responses, customParams, concurrent, threadPoolSize, deleteCommands, deleteCommandLength, deleteResponse, deleteResponseLength, help, entriesPerHelpPage, sendTyping);
     }
 }

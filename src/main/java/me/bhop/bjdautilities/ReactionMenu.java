@@ -87,7 +87,7 @@ public class ReactionMenu extends ListenerAdapter {
     }
 
     public void destroy() {
-        destroyIn(0);
+        destroyIn(1);
     }
 
     public void destroyIn(int seconds) {
