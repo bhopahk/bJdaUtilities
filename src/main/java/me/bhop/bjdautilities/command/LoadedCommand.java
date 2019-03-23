@@ -13,16 +13,16 @@ import java.lang.reflect.Method;
 import java.util.*;
 
 public class LoadedCommand {
-    public static LoadedCommand create(Class<?> clazz, Object... additionalClasses) {
+    public static LoadedCommand create(Class<?> clazz, List<Object> customParams) {
         try {
-            return new LoadedCommand(clazz.newInstance());
+            return new LoadedCommand(clazz.newInstance(), customParams);
         } catch (IllegalAccessException | InstantiationException e) {
             throw new RuntimeException("Failed to instantiate command class. This is likely because it does not have a no args constructor!", e);
         }
     }
 
-    public static LoadedCommand create(Object command, Object... additionalClasses) {
-        return new LoadedCommand(command);
+    public static LoadedCommand create(Object command, List<Object> customParams) {
+        return new LoadedCommand(command, customParams);
     }
 
     private final Class<?> clazz;
@@ -32,13 +32,13 @@ public class LoadedCommand {
     private final int minArgs;
     private final Set<Class<?>> childClasses = new HashSet<>();
     private final Set<LoadedCommand> children = new HashSet<>();
-    private final Object[] additionalClasses;
+    private final List<Object> customParams;
 
     private Method execute = null;
     private Method usage = null;
 
-    private LoadedCommand(Object instance, Object... additionalClasses) {
-        this.additionalClasses = additionalClasses;
+    private LoadedCommand(Object instance, List<Object> customParams) {
+        this.customParams = customParams;
         this.clazz = instance.getClass();
         this.instance = instance;
 
@@ -97,41 +97,42 @@ public class LoadedCommand {
                     return CommandResult.INVALID_ARGUMENTS;
 
                 CommandResult result = sub.execute(member, channel, message, newLabel, arguments);
-                if (result == CommandResult.INVALID_ARGUMENTS)
-                    sub.usage(member, channel, message, label, arguments);
-
-                return result;
+                return result == CommandResult.INVALID_ARGUMENTS ? sub.usage(member, channel, message, label, arguments) ? CommandResult.SUCCESS : result : result;
             }
         }
 
         arguments = new ArrayList<>(args);
 
-        if (execute == null || getMinArgs() > arguments.size()) {
-            usage(member, channel, message, label, arguments);
-            return CommandResult.SUCCESS;
-        }
+        if (execute == null || getMinArgs() > arguments.size())
+            return usage(member, channel, message, label, arguments) ? CommandResult.SUCCESS : CommandResult.INVALID_ARGUMENTS;
 
         try {
-            if (additionalClasses.length == 0)
+            if (customParams.size() == 0)
                 return (CommandResult) execute.invoke(instance, member, channel, message, label, arguments);
-            else
-                return (CommandResult) execute.invoke(instance, member, channel, message, label, arguments, additionalClasses);
-        } catch (Exception ignored) {
-            ignored.printStackTrace();
-        }
+            else {
+                Object[] varargs = new Object[5 + customParams.size()];
+                varargs[0] = member;
+                varargs[1] = channel;
+                varargs[2] = message;
+                varargs[3] = label;
+                varargs[4] = arguments;
+                for (int i = 5; i < varargs.length; i++)
+                    varargs[i] = customParams.get(i - 5);
+                return (CommandResult) execute.invoke(instance, varargs);
+            }
+
+        } catch (Exception ignored) { }
         return CommandResult.INVOKE_ERROR;
     }
 
-    public void usage(Member member, TextChannel channel, Message message, String label, List<String> args) {
+    public boolean usage(Member member, TextChannel channel, Message message, String label, List<String> args) {
         if (usage != null) {
             try {
                 usage.invoke(instance, member, channel, message, label, args);
-            } catch (Exception ignored) {
-                ignored.printStackTrace();
-            }
-        } else {
-            System.out.println("Sending Default usage!");
+                return true;
+            } catch (Exception ignored) { }
         }
+        return false;
     }
 
     public Class<?> getCommandClass() {
@@ -143,7 +144,7 @@ public class LoadedCommand {
     }
 
     public boolean isThis(String label) {
-        return Arrays.asList(labels).contains(label);
+        return labels.contains(label);
     }
 
     public Permission getPermission() {
@@ -152,6 +153,10 @@ public class LoadedCommand {
 
     public int getMinArgs() {
         return minArgs;
+    }
+
+    public String getUsageString() {
+        return "USAGE STRING!";
     }
 
     public Set<Class<?>> getChildClasses() {

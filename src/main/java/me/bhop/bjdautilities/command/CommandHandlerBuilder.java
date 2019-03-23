@@ -1,9 +1,11 @@
 package me.bhop.bjdautilities.command;
 
-import me.bhop.bjdautilities.response.CommandResponses;
+import me.bhop.bjdautilities.command.response.CommandResponses;
 import net.dv8tion.jda.core.JDA;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class CommandHandlerBuilder {
@@ -12,7 +14,7 @@ public class CommandHandlerBuilder {
     private CommandResponses responses;
 
     // Custom Parameters
-    private final Map<Class<?>, Object> customParams = new HashMap<>();
+    private final List<Object> customParams = new ArrayList<>();
 
     // Concurrent Execution
     private boolean concurrent = true;
@@ -28,6 +30,8 @@ public class CommandHandlerBuilder {
     private boolean help = false;
     // Send typing before a response
     private boolean sendTyping = true;
+    // Whether to search for commands in the classpath and register them. This is moderately slow.
+    private boolean autoRegister = false;
 
     public CommandHandlerBuilder(JDA jda) {
         this.jda = jda;
@@ -44,7 +48,7 @@ public class CommandHandlerBuilder {
     }
 
     public CommandHandlerBuilder addCustomParameter(Object instance) {
-        customParams.put(instance.getClass(), instance);
+        customParams.add(instance);
         return this;
     }
 
@@ -81,6 +85,11 @@ public class CommandHandlerBuilder {
 
     public CommandHandlerBuilder setSendTyping(boolean sendTyping) {
         this.sendTyping = sendTyping;
+        return this;
+    }
+
+    public CommandHandlerBuilder setAutoRegister(boolean autoRegister) {
+        this.autoRegister = autoRegister;
         return this;
     }
 

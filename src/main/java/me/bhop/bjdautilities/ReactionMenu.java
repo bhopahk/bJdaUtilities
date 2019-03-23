@@ -77,12 +77,9 @@ public class ReactionMenu extends ListenerAdapter {
             throw new IllegalStateException("This menu has already been displayed!");
         message = new EditableMessage(channel.sendMessage(unsentMessage.build()).complete());
         for (String emoteId : startingReactions) {
-//            System.out.println("Emote: " + emoteId + " " + emoteId.startsWith("\\"));
-//            System.out.println("first char: " + emoteId.charAt(0));
-            if (emoteId.charAt(0) > 128) {
-                System.out.println("Called");
+            if (emoteId.charAt(0) > 128)
                 message.getMessage().addReaction(emoteId).queue();
-            } else
+            else
                 message.getMessage().addReaction(channel.getGuild().getEmotesByName(emoteId, true).get(0)).queue();
 
         }
