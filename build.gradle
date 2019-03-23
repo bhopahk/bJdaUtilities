@@ -5,6 +5,7 @@ plugins {
 }
 
 group 'me.bhop'
+// AutoVersion version fetch method. Just makes an api call.
 project.version = new me.bhop.autoversiongradle.AutoVersionRunner().getVersion(null, "bjdautilities")
 
 sourceCompatibility = 1.8
