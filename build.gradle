@@ -18,6 +18,8 @@ repositories {
 
 dependencies {
     compile 'net.dv8tion:JDA:3.8.1_447'
+    testCompile 'org.slf4j:slf4j-api:1.7.25'
+    testCompile 'org.slf4j:slf4j-simple:1.7.25'
 }
 
 autoversion {

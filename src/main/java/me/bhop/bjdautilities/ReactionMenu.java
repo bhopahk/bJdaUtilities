@@ -77,9 +77,12 @@ public class ReactionMenu extends ListenerAdapter {
             throw new IllegalStateException("This menu has already been displayed!");
         message = new EditableMessage(channel.sendMessage(unsentMessage.build()).complete());
         for (String emoteId : startingReactions) {
-            if (emoteId.startsWith("\\"))
+//            System.out.println("Emote: " + emoteId + " " + emoteId.startsWith("\\"));
+//            System.out.println("first char: " + emoteId.charAt(0));
+            if (emoteId.charAt(0) > 128) {
+                System.out.println("Called");
                 message.getMessage().addReaction(emoteId).queue();
-            else
+            } else
                 message.getMessage().addReaction(channel.getGuild().getEmotesByName(emoteId, true).get(0)).queue();
 
         }
@@ -171,6 +174,7 @@ public class ReactionMenu extends ListenerAdapter {
 
         // The name can be fetched from !emote. Example is "\u2705" for ✅
         public Builder onClick(String name, Consumer<ReactionMenu> action) {
+            startingReactions.add(name);
             addActions.put(name, action);
             return this;
         }
