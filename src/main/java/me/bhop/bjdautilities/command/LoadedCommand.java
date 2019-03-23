@@ -15,19 +15,21 @@ import java.util.*;
 public class LoadedCommand {
     public static LoadedCommand create(Class<?> clazz, List<Object> customParams) {
         try {
-            return new LoadedCommand(clazz.newInstance(), customParams);
+            return new LoadedCommand(clazz.newInstance(), new ArrayList<>(customParams));
         } catch (IllegalAccessException | InstantiationException e) {
             throw new RuntimeException("Failed to instantiate command class. This is likely because it does not have a no args constructor!", e);
         }
     }
 
     public static LoadedCommand create(Object command, List<Object> customParams) {
-        return new LoadedCommand(command, customParams);
+        return new LoadedCommand(command, new ArrayList<>(customParams));
     }
 
     private final Class<?> clazz;
     private final Object instance;
-    private final List<String> labels = new ArrayList<>(); //todo allow for custom things in the execute method
+    private final List<String> labels = new ArrayList<>();
+    private final String usageString;
+    private final String description;
     private final Permission permission;
     private final int minArgs;
     private final Set<Class<?>> childClasses = new HashSet<>();
@@ -55,6 +57,8 @@ public class LoadedCommand {
         if (ca.children().length > 0 && !ca.children()[0].equals(Void.class))
             childClasses.addAll(Arrays.asList(ca.children()));
 
+        usageString = ca.usage();
+        description = ca.description();
         permission = ca.permission();
         minArgs = ca.minArgs();
 
@@ -107,6 +111,7 @@ public class LoadedCommand {
             return usage(member, channel, message, label, arguments) ? CommandResult.SUCCESS : CommandResult.INVALID_ARGUMENTS;
 
         try {
+            System.out.println("For " + getCommandClass().getName() + " params size = " + customParams.size());
             if (customParams.size() == 0)
                 return (CommandResult) execute.invoke(instance, member, channel, message, label, arguments);
             else {
@@ -151,12 +156,20 @@ public class LoadedCommand {
         return permission;
     }
 
+    public void addCustomParam(Object param) {
+        customParams.add(param);
+    }
+
     public int getMinArgs() {
         return minArgs;
     }
 
     public String getUsageString() {
-        return "USAGE STRING!";
+        return usageString;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public Set<Class<?>> getChildClasses() {

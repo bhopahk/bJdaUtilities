@@ -34,16 +34,18 @@ public class Testing {
     public static void main(String[] args) throws Exception {
         jda = new JDABuilder(AccountType.BOT).setToken(args[0]).build();
 
-        CommandHandler handler = new CommandHandlerBuilder(jda).setPrefix(">").addCustomParameter("tesatawtatwat").addCustomParameter(new TestObject("I am an extra parameter!")).build();
+        CommandHandler handler = new CommandHandlerBuilder(jda).setPrefix(">").setGenerateHelp(true).build();
         handler.register(new TestCommand());
         handler.register(new TestChild());
+
+        handler.getCommand(TestCommand.class).ifPresent(cmd -> cmd.addCustomParam(new TestObject("Custom param for this only")));
 
     }
 
     @Command(label = "test", children = TestChild.class)
     private static class TestCommand {
         @Execute
-        public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, String str, TestObject testobj) {
+        public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject testobj) {
 //            new ReactionMenu.Builder(jda)
 //                    .setMessage("Test reaction menu!")
 //                    .onClick("\uD83D\uDD04", menu -> {
@@ -54,7 +56,7 @@ public class Testing {
 ////                        menu.getMessage().setContent("test");
 //                    })
 //                    .buildAndDisplay(channel);
-            System.out.println("Test + " + str + " // " + testobj.value);
+            System.out.println("Test + " + testobj.value);
             return CommandResult.SUCCESS;
         }
 
@@ -64,11 +66,11 @@ public class Testing {
 //        }
     }
 
-    @Command(label = "child", minArgs = 1)
+    @Command(label = "child")
     private static class TestChild {
         @Execute
-        public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, String str, TestObject testObject) {
-            System.out.println("EXECUTE CHILD + " + str);
+        public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args) {
+            System.out.println("EXECUTE CHILD + ");
             return CommandResult.SUCCESS;
         }
 

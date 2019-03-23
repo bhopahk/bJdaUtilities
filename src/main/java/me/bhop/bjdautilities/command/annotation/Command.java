@@ -14,6 +14,10 @@ public @interface Command {
 
     String[] label() default {};
 
+    String usage() default "";
+
+    String description() default "";
+
     Permission permission() default Permission.UNKNOWN;
 
     int minArgs() default 0;

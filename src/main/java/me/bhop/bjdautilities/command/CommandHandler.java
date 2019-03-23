@@ -1,5 +1,6 @@
 package me.bhop.bjdautilities.command;
 
+import me.bhop.bjdautilities.command.provided.HelpCommand;
 import me.bhop.bjdautilities.command.response.CommandResponses;
 import me.bhop.bjdautilities.command.response.DefaultCommandResponses;
 import net.dv8tion.jda.core.JDA;
@@ -30,7 +31,6 @@ public class CommandHandler extends ListenerAdapter {
     private final boolean deleteResponse;
     private final int deleteResponseLength;
 
-    private final boolean help;
     private final boolean sendTyping;
 
     public CommandHandler(JDA jda) {
@@ -51,7 +51,10 @@ public class CommandHandler extends ListenerAdapter {
         this.deleteResponse = deleteResponse;
         this.deleteResponseLength = deleteResponseLength;
 
-        this.help = help;
+        if (help) {
+            register(new HelpCommand());
+            getCommand(HelpCommand.class).ifPresent(loadedCommand -> loadedCommand.addCustomParam(this.getAllRecursive()));
+        }
         this.sendTyping = sendTyping;
 
         jda.addEventListener(this);
@@ -160,6 +163,10 @@ public class CommandHandler extends ListenerAdapter {
             if (deleteResponse && deleteResponseLength > 0)
                 messageMurderer.schedule(() -> m.delete().queue(), deleteResponseLength, TimeUnit.SECONDS);
         });
+    }
+
+    public Optional<LoadedCommand> getCommand(Class<?> clazz) {
+        return getAllRecursive().stream().filter(cmd -> cmd.getCommandClass().equals(clazz)).findFirst();
     }
 }
 
