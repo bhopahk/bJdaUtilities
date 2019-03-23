@@ -1,0 +1,38 @@
+plugins {
+    id 'java'
+    id 'me.bhop.autoversion' version '1.4.0'
+    id 'maven'
+}
+
+group 'me.bhop'
+project.version = new me.bhop.autoversiongradle.AutoVersionRunner().getVersion(null, "bjdautilities")
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    compile 'net.dv8tion:JDA:3.8.1_447'
+}
+
+autoversion {
+    projectId 'bjdautilities'
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: 'https://repo.netbans.co.uk/repository/netbans/') {
+                authentication(userName: nexusUsername, password: nexusPassword)
+            }
+
+            pom.version = project.version
+            pom.artifactId = "bjdautilities"
+            pom.groupId = "me.bhop"
+        }
+    }
+}
