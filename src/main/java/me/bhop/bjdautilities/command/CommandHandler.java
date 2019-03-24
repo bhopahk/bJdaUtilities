@@ -28,6 +28,8 @@ package me.bhop.bjdautilities.command;
 import me.bhop.bjdautilities.command.provided.HelpCommand;
 import me.bhop.bjdautilities.command.response.CommandResponses;
 import me.bhop.bjdautilities.command.response.DefaultCommandResponses;
+import me.bhop.bjdautilities.command.result.CommandResult;
+import me.bhop.bjdautilities.util.TriConsumer;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -53,6 +55,7 @@ public class CommandHandler extends ListenerAdapter {
     private final CommandResponses responses;
     private final Set<LoadedCommand> commands = new HashSet<>();
     private final List<Object> params;
+    private final Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results;
 
     private final boolean deleteCommands;
     private final int deleteCommandLength;
@@ -67,17 +70,18 @@ public class CommandHandler extends ListenerAdapter {
      * @param jda the {@link JDA} instance
      */
     public CommandHandler(JDA jda) {
-        this(jda, "!", new DefaultCommandResponses(), new ArrayList<>(), true, 2, true, 10, true, 20, false, 5, true);
+        this(jda, "!", new DefaultCommandResponses(), new ArrayList<>(), new HashMap<>(), true, 2, true, 10, true, 20, false, 5, true);
     }
 
     /**
      * Create a command handler with custom settings. Using the {@link Builder} is heavily recommended.
      */
-    public CommandHandler(JDA jda, String prefix, CommandResponses responses, List<Object> customParams, boolean concurrent, int threadPoolSize, boolean deleteCommands, int deleteCommandLength, boolean deleteResponse, int deleteResponseLength, boolean help, int entriesPerPage, boolean sendTyping) {
+    private CommandHandler(JDA jda, String prefix, CommandResponses responses, List<Object> customParams, Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results, boolean concurrent, int threadPoolSize, boolean deleteCommands, int deleteCommandLength, boolean deleteResponse, int deleteResponseLength, boolean help, int entriesPerPage, boolean sendTyping) {
         this.prefix = prefix;
         this.responses = responses;
 
         params = customParams;
+        this.results = results;
 
         executor = concurrent ? Executors.newFixedThreadPool(threadPoolSize) : null;
 
@@ -138,21 +142,16 @@ public class CommandHandler extends ListenerAdapter {
                 return;
             }
 
-            switch (cmd.execute(member, channel, message, label, args)) {
-                case INVALID_ARGUMENTS:
-                    if (cmd.hasUsage())
-                        cmd.usage(member, channel, message, label, args);
-                    else sendMessage(channel, responses.usage(message, args, cmd.getUsageString()));
-                    break;
-                case NO_PERMISSION:
-                    sendMessage(channel, responses.noPerms(message, cmd.getPermission()));
-                    break;
-                case UNKNOWN_ERROR:
-                    sendMessage(channel, responses.unknownError(message));
-                    break;
-                default:
-                    break;
-            }
+            CommandResult result = cmd.execute(member, channel, message, label, args);
+            if (result instanceof CommandResult.NoPermission)
+                sendMessage(channel, responses.noPerms(message, cmd.getPermission()));
+            else if (result instanceof CommandResult.InvalidArguments) {
+                System.out.println("Hello world");
+                if (cmd.hasUsage())
+                    cmd.usage(member, channel, message, label, args);
+                else sendMessage(channel, responses.usage(message, args, cmd.getUsageString()));
+            } else if (!(result instanceof CommandResult.Success))
+                Optional.ofNullable(results.get(result.getClass())).ifPresent(r -> r.accept(result, cmd, message));
         });
 
         if (executor == null)
@@ -183,6 +182,8 @@ public class CommandHandler extends ListenerAdapter {
      */
     public void register(Object command) {
         LoadedCommand cmd = LoadedCommand.create(command, params);
+        cmd.sendMessage = this::sendMessage;
+        cmd.responses = this.responses;
         boolean foundParent = false;
         for (LoadedCommand all : getAllRecursive())
             if (all.hasChild(cmd.getCommandClass()))
@@ -243,10 +244,12 @@ public class CommandHandler extends ListenerAdapter {
     public static class Builder {
         private final JDA jda;
         private String prefix = "!";
-        private CommandResponses responses;
+        private CommandResponses responses = new DefaultCommandResponses();
 
         // Custom Parameters
         private final List<Object> customParams = new ArrayList<>();
+        // Result Handlers
+        private final Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results = new HashMap<>();
 
         // Concurrent Execution
         private boolean concurrent = true;
@@ -310,6 +313,21 @@ public class CommandHandler extends ListenerAdapter {
          */
         public Builder addCustomParameter(Object instance) {
             customParams.add(instance);
+            return this;
+        }
+
+        /**
+         * Add a handler for a custom {@link CommandResult}.
+         *
+         * This can handle any {@link CommandResult} with the exception of the
+         * included results which cannot be edited.
+         *
+         * @param target the {@link CommandResult} to handle
+         * @param handle the result handler
+         */
+        @SuppressWarnings("unchecked")
+        public <T extends CommandResult> Builder addResultHandler(Class<T> target, TriConsumer<T, LoadedCommand, Message> handle) {
+            results.put(target, (TriConsumer<CommandResult, LoadedCommand, Message>) handle);
             return this;
         }
 
@@ -432,7 +450,7 @@ public class CommandHandler extends ListenerAdapter {
          * @return the compiled {@link CommandHandler}.
          */
         public CommandHandler build() {
-            return new CommandHandler(jda, prefix, responses, customParams, concurrent, threadPoolSize, deleteCommands, deleteCommandLength, deleteResponse, deleteResponseLength, help, entriesPerHelpPage, sendTyping);
+            return new CommandHandler(jda, prefix, responses, customParams, results, concurrent, threadPoolSize, deleteCommands, deleteCommandLength, deleteResponse, deleteResponseLength, help, entriesPerHelpPage, sendTyping);
         }
     }
 

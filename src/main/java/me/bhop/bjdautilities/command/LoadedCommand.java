@@ -28,6 +28,8 @@ package me.bhop.bjdautilities.command;
 import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.annotation.Execute;
 import me.bhop.bjdautilities.command.annotation.Usage;
+import me.bhop.bjdautilities.command.response.CommandResponses;
+import me.bhop.bjdautilities.command.result.CommandResult;
 import me.bhop.bjdautilities.exception.CommandExecuteException;
 import me.bhop.bjdautilities.exception.CommandInitException;
 import me.bhop.bjdautilities.exception.MethodInvocationException;
@@ -39,6 +41,8 @@ import net.dv8tion.jda.core.entities.TextChannel;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * A representation of a registered / loaded {@link Command}.
@@ -86,6 +90,10 @@ public class LoadedCommand {
 
     private Method execute = null;
     private Method usage = null;
+
+    // Temporary until better solution
+    CommandResponses responses;
+    BiConsumer<TextChannel, Message> sendMessage;
 
     private LoadedCommand(Object instance, List<Object> customParams) {
         this.customParams = customParams;
@@ -162,20 +170,26 @@ public class LoadedCommand {
 
             if (opt.isPresent()) {
                 LoadedCommand sub = opt.get();
-                if (!member.hasPermission(permission))
-                    return CommandResult.NO_PERMISSION;
-                if (sub.getMinArgs() > arguments.size())
-                    return CommandResult.INVALID_ARGUMENTS;
+                if (!member.hasPermission(permission)){
+                    sendMessage.accept(channel, responses.noPerms(message, sub.getPermission()));
+                    return CommandResult.success();
+                }
+                if (sub.getMinArgs() > arguments.size()) {
+                    sendMessage.accept(channel, responses.notEnoughArguments(message, sub.minArgs, arguments));
+                    return CommandResult.success();
+                }
 
                 CommandResult result = sub.execute(member, channel, message, newLabel, arguments);
-                return result == CommandResult.INVALID_ARGUMENTS ? sub.usage(member, channel, message, label, arguments) ? CommandResult.SUCCESS : result : result;
+                if (result instanceof CommandResult.InvalidArguments && !sub.usage(member, channel, message, label, arguments))
+                    sendMessage.accept(channel, responses.usage(message, arguments, sub.usageString));
+                return CommandResult.success();
             }
         }
 
         arguments = new ArrayList<>(args);
 
         if (execute == null || getMinArgs() > arguments.size())
-            return usage(member, channel, message, label, arguments) ? CommandResult.SUCCESS : CommandResult.INVALID_ARGUMENTS;
+            return usage(member, channel, message, label, arguments) ? CommandResult.success() : CommandResult.invalidArguments();
 
         Object[] varargs = new Object[5 + customParams.size()];
         populate(varargs, member, channel, message, label, arguments);

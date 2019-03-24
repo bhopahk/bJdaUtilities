@@ -26,10 +26,10 @@
 package me.bhop.bjdautilities.command.provided;
 
 import me.bhop.bjdautilities.ReactionMenu;
-import me.bhop.bjdautilities.command.CommandResult;
 import me.bhop.bjdautilities.command.LoadedCommand;
 import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.annotation.Execute;
+import me.bhop.bjdautilities.command.result.CommandResult;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.Permission;
@@ -83,7 +83,7 @@ public class HelpCommand {
             });
         }
         menuBuilder.buildAndDisplay(channel);
-        return CommandResult.SUCCESS;
+        return CommandResult.success();
     }
 
     private MessageEmbed generatePage(int page, int max, Stream<LoadedCommand> commands, JDA jda) {

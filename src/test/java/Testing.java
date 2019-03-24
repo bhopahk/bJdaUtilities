@@ -24,10 +24,10 @@
  */
 
 import me.bhop.bjdautilities.command.CommandHandler;
-import me.bhop.bjdautilities.command.CommandResult;
 import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.annotation.Execute;
 import me.bhop.bjdautilities.command.annotation.Usage;
+import me.bhop.bjdautilities.command.result.CommandResult;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDABuilder;
@@ -57,7 +57,13 @@ public class Testing {
     public static void main(String[] args) throws Exception {
         jda = new JDABuilder(AccountType.BOT).setToken(args[0]).build();
 
-        CommandHandler handler = new CommandHandler.Builder(jda).setPrefix("!").setConcurrent(true).addCustomParameter(new TestObject("I am a test")).setGenerateHelp(true).build();
+        CommandHandler handler = new CommandHandler.Builder(jda)
+                .setPrefix("!").setConcurrent(true)
+                .addCustomParameter(new TestObject("I am a test"))
+                .addResultHandler(CustomResults.CoolResult.class, (result, command, message) -> {
+                    message.getTextChannel().sendMessage("I am a custom handler w/ value of '" + result.value + "'").complete();
+                })
+                .setGenerateHelp(true).build();
 
 
         handler.register(new TestCommand());
@@ -68,7 +74,7 @@ public class Testing {
         handler.register(new Wahh4());
     }
 
-    @Command(label = {"test", "testcommand"}, permission = {Permission.MESSAGE_MANAGE}, children = TestChild.class)
+    @Command(label = {"test", "testcommand"}, permission = {Permission.MESSAGE_MANAGE}, children = TestChild.class, usage = "test")
     private static class TestCommand {
         @Execute
         public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject test) {
@@ -76,34 +82,26 @@ public class Testing {
 
 
             channel.sendMessage("Tested! " + args.toString()).queue();
-            return CommandResult.SUCCESS;
+            return CommandResult.invalidArguments();
         }
-
-//        @Usage
-//        public void sendUsage(Member member, TextChannel channel, Message message, String label, List<String> args) {
-//            System.out.println("USAGE");
-//        }
     }
 
-    @Command(label = {"child", "childcommand"})
+    @Command(label = {"child", "childcommand"}, usage = "test child")
     private static class TestChild {
         @Execute
-        public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args) {
+        public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject test) {
             System.out.println("EXECUTE CHILD + ");
-            return CommandResult.SUCCESS;
+            return CommandResult.invalidArguments();
         }
 
-        @Usage
-        public void sendUsage(Member member, TextChannel channel, Message message, String label, List<String> args) {
-            System.out.println("USAGE CHILD");
-        }
+
     }
 
     @Command(label = {"wahh", "wagdafgagwagw"}, description = "be the WAHH", usage = "wahh")
     private static class Wahh {
         @Execute
         public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject testobj) {
-            return CommandResult.SUCCESS;
+            return CommandResult.success();
         }
     }
 
@@ -111,7 +109,7 @@ public class Testing {
     private static class Wahh2 {
         @Execute
         public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject testobj) {
-            return CommandResult.SUCCESS;
+            return CommandResult.success();
         }
     }
 
@@ -119,7 +117,7 @@ public class Testing {
     private static class Wahh3 {
         @Execute
         public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject testobj) {
-            return CommandResult.SUCCESS;
+            return CommandResult.success();
         }
     }
 
@@ -127,7 +125,7 @@ public class Testing {
     private static class Wahh4 {
         @Execute
         public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject testobj) {
-            return CommandResult.SUCCESS;
+            return CommandResult.success();
         }
     }
 
