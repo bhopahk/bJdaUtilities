@@ -1,8 +1,30 @@
-import me.bhop.bjdautilities.ReactionMenu;
+/*
+ * This file is part of bJdaUtilities, licensed under the MIT License.
+ *
+ * Copyright (c) 2019 bhop_ (Matt Worzala)
+ * Copyright (c) 2019 contributors
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 import me.bhop.bjdautilities.command.CommandHandler;
-import me.bhop.bjdautilities.command.CommandHandlerBuilder;
 import me.bhop.bjdautilities.command.CommandResult;
-import me.bhop.bjdautilities.command.CommandTemplate;
 import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.annotation.Execute;
 import me.bhop.bjdautilities.command.annotation.Usage;
@@ -34,7 +56,7 @@ public class Testing {
     public static void main(String[] args) throws Exception {
         jda = new JDABuilder(AccountType.BOT).setToken(args[0]).build();
 
-        CommandHandler handler = new CommandHandlerBuilder(jda).setPrefix("!")/*.setGenerateHelp(true)*/.build();
+        CommandHandler handler = new CommandHandler.Builder(jda).setPrefix("!").setGenerateHelp(true).build();
         handler.register(new TestCommand());
         handler.register(new TestChild());
         handler.register(new Wahh());
@@ -49,6 +71,11 @@ public class Testing {
     private static class TestCommand {
         @Execute
         public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject testobj) {
+            channel.getIterableHistory().queue(messages -> {
+                Message first = messages.get(messages.size() - 1);
+                // do something with that message
+            });
+
 //            new ReactionMenu.Builder(jda)
 //                    .setMessage("Test reaction menu!")
 //                    .onClick("\uD83D\uDD04", menu -> {

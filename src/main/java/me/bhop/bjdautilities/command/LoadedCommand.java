@@ -1,3 +1,28 @@
+/*
+ * This file is part of bJdaUtilities, licensed under the MIT License.
+ *
+ * Copyright (c) 2019 bhop_ (Matt Worzala)
+ * Copyright (c) 2019 contributors
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package me.bhop.bjdautilities.command;
 
 import me.bhop.bjdautilities.command.annotation.Command;
@@ -12,6 +37,9 @@ import net.dv8tion.jda.core.entities.TextChannel;
 import java.lang.reflect.Method;
 import java.util.*;
 
+/**
+ * A representation of a registered / loaded {@link Command}.
+ */
 public class LoadedCommand {
     public static LoadedCommand create(Class<?> clazz, List<Object> customParams) {
         try {
@@ -30,8 +58,9 @@ public class LoadedCommand {
     private final List<String> labels = new ArrayList<>();
     private final String usageString;
     private final String description;
-    private final Permission permission;
+    private final List<Permission> permission;
     private final int minArgs;
+    private final boolean hideInHelp;
     private final Set<Class<?>> childClasses = new HashSet<>();
     private final Set<LoadedCommand> children = new HashSet<>();
     private final List<Object> customParams;
@@ -59,8 +88,9 @@ public class LoadedCommand {
 
         usageString = ca.usage();
         description = ca.description();
-        permission = ca.permission();
+        permission = new ArrayList<>(Arrays.asList(ca.permission()));
         minArgs = ca.minArgs();
+        hideInHelp = ca.hideInHelp();
 
         for (Method method : clazz.getMethods()) {
             if (method.getAnnotation(Execute.class) != null)
@@ -151,7 +181,7 @@ public class LoadedCommand {
         return labels.contains(label);
     }
 
-    public Permission getPermission() {
+    public List<Permission> getPermission() {
         return permission;
     }
 
@@ -173,6 +203,10 @@ public class LoadedCommand {
 
     public Set<Class<?>> getChildClasses() {
         return childClasses;
+    }
+
+    public boolean isHiddenFromHelp() {
+        return hideInHelp;
     }
 
     public Set<LoadedCommand> getChildren() {

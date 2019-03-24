@@ -1,3 +1,28 @@
+/*
+ * This file is part of bJdaUtilities, licensed under the MIT License.
+ *
+ * Copyright (c) 2019 bhop_ (Matt Worzala)
+ * Copyright (c) 2019 contributors
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package me.bhop.bjdautilities.command.provided;
 
 import me.bhop.bjdautilities.ReactionMenu;
@@ -20,6 +45,9 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+/**
+ * The provided command help implementation in a paginated list.
+ */
 @Command(label = {"help"}, usage = "help", description = "Receive information about all commands!")
 public class HelpCommand {
     private final int numEntries;
@@ -62,7 +90,7 @@ public class HelpCommand {
         newEmbed.setColor(Color.CYAN);
         newEmbed.setFooter("Page " + page + " of " + max, jda.getSelfUser().getAvatarUrl());
         newEmbed.setTimestamp(Instant.now());
-        commands.forEach(cmd -> {
+        commands.filter(cmd -> !cmd.isHiddenFromHelp()).forEach(cmd -> {
             StringBuilder aka = new StringBuilder("**");
             String label = cmd.getLabels().get(0);
             aka.append(label.substring(0, 1).toUpperCase()).append(label.substring(1)).append("**");
@@ -87,7 +115,7 @@ public class HelpCommand {
                 desc.append("\u2022\u0020**Description:** ").append(cmd.getDescription()).append("\n");
             if (!cmd.getUsageString().equals(""))
                 desc.append("\u2022\u0020**Usage:** ").append(prefix).append(cmd.getUsageString()).append("\n");
-            desc.append("\u2022\u0020**Permission:** ").append(cmd.getPermission() == Permission.UNKNOWN ? "None" : cmd.getPermission().getName()).append("\n");
+            desc.append("\u2022\u0020**Permission:** ").append(cmd.getPermission().get(0) == Permission.UNKNOWN ? "None" : cmd.getPermission().get(0).getName()).append("\n"); //todo temporarily first permission
 
             if (desc.charAt(desc.length() - 1) == '\n')
                 desc.setLength(desc.length() - 1);
