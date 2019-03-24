@@ -31,6 +31,7 @@ import me.bhop.bjdautilities.command.annotation.Usage;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDABuilder;
+import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
@@ -56,37 +57,25 @@ public class Testing {
     public static void main(String[] args) throws Exception {
         jda = new JDABuilder(AccountType.BOT).setToken(args[0]).build();
 
-        CommandHandler handler = new CommandHandler.Builder(jda).setPrefix("!").setGenerateHelp(true).build();
+        CommandHandler handler = new CommandHandler.Builder(jda).setPrefix("!").setConcurrent(true).addCustomParameter(new TestObject("I am a test")).setGenerateHelp(true).build();
+
+
         handler.register(new TestCommand());
         handler.register(new TestChild());
         handler.register(new Wahh());
         handler.register(new Wahh2());
         handler.register(new Wahh3());
         handler.register(new Wahh4());
-
-        handler.getCommand(TestCommand.class).ifPresent(cmd -> cmd.addCustomParam(new TestObject("Custom param for this only")));
     }
 
-    @Command(label = {"test", "testcommand"}, children = TestChild.class)
+    @Command(label = {"test", "testcommand"}, permission = {Permission.MESSAGE_MANAGE}, children = TestChild.class)
     private static class TestCommand {
         @Execute
-        public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject testobj) {
-            channel.getIterableHistory().queue(messages -> {
-                Message first = messages.get(messages.size() - 1);
-                // do something with that message
-            });
+        public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject test) {
+            System.out.println("Has? " + member.hasPermission(Permission.MESSAGE_MANAGE));
 
-//            new ReactionMenu.Builder(jda)
-//                    .setMessage("Test reaction menu!")
-//                    .onClick("\uD83D\uDD04", menu -> {
-//                        if (!menu.data.containsKey("count"))
-//                            menu.data.put("count", 1);
-//                        menu.getMessage().setContent("I have been updated. You have updated me " + menu.data.get("count") + " times!");
-//                        menu.data.put("count", ((int) menu.data.get("count")) + 1);
-////                        menu.getMessage().setContent("test");
-//                    })
-//                    .buildAndDisplay(channel);
-            System.out.println("Test + " + testobj.value);
+
+            channel.sendMessage("Tested! " + args.toString()).queue();
             return CommandResult.SUCCESS;
         }
 

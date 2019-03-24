@@ -86,15 +86,15 @@ public class CommandHandler extends ListenerAdapter {
         this.deleteResponse = deleteResponse;
         this.deleteResponseLength = deleteResponseLength;
 
-        if (help) {
-            register(new HelpCommand(entriesPerPage, prefix));
-            getCommand(HelpCommand.class).ifPresent(loadedCommand -> loadedCommand.addCustomParam((Supplier<Set<LoadedCommand>>) this::getAllRecursive));
-        }
+        if (help)
+            commands.add(LoadedCommand.create(new HelpCommand(entriesPerPage, prefix), Collections.singletonList((Supplier<Set<LoadedCommand>>) this::getAllRecursive)));
+
         this.sendTyping = sendTyping;
 
         jda.addEventListener(this);
     }
 
+    // Events
     @Override
     public void onGuildMessageReceived(final GuildMessageReceivedEvent event) {
         Message message = event.getMessage();
@@ -109,10 +109,9 @@ public class CommandHandler extends ListenerAdapter {
         if (deleteCommands && deleteCommandLength > 0)
             messageMurderer.schedule(() -> event.getMessage().delete().queue(), deleteCommandLength, TimeUnit.SECONDS);
 
-        executor.submit(() -> {
+        ThrowingRunnable run = new ThrowingRunnable(() -> {
             List<String> args = new ArrayList<>(Arrays.asList(event.getMessage().getContentRaw().split(" ")));
             if (args.isEmpty() || (args.size() == 1 && args.get(0).trim().isEmpty())) {
-                // todo maybe show help here automatically if enabled.
                 sendMessage(channel, responses.unknownCommand(message, prefix));
                 return;
             }
@@ -124,7 +123,6 @@ public class CommandHandler extends ListenerAdapter {
                     .filter(cmd -> cmd.getLabels().contains(label.toLowerCase()))
                     .findFirst();
             if (!opt.isPresent()) {
-                // todo maybe show help here automatically if enabled.
                 sendMessage(channel, responses.unknownCommand(message, prefix));
                 return;
             }
@@ -150,13 +148,32 @@ public class CommandHandler extends ListenerAdapter {
                     sendMessage(channel, responses.noPerms(message, cmd.getPermission()));
                     break;
                 case UNKNOWN_ERROR:
-                case INVOKE_ERROR:
                     sendMessage(channel, responses.unknownError(message));
                     break;
                 default:
                     break;
             }
         });
+
+        if (executor == null)
+            run.run();
+        else
+            executor.submit(run);
+    }
+
+    /**
+     * Register a new command given its class.
+     *
+     * Note: This will only work if the class as a public no args constructor.
+     *
+     * @param type the command
+     */
+    public void register(Class<?> type) {
+        try {
+            register(type.newInstance());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -167,12 +184,10 @@ public class CommandHandler extends ListenerAdapter {
     public void register(Object command) {
         LoadedCommand cmd = LoadedCommand.create(command, params);
         boolean foundParent = false;
-        for (LoadedCommand all : getAllRecursive()) {
-            if (all.hasChild(cmd.getCommandClass())) {
-                all.registerChild(cmd);
-                foundParent = true;
-            }
-        }
+        for (LoadedCommand all : getAllRecursive())
+            if (all.hasChild(cmd.getCommandClass()))
+                foundParent = all.registerChild(cmd);
+
         if (!foundParent)
             commands.add(cmd);
 
@@ -190,6 +205,16 @@ public class CommandHandler extends ListenerAdapter {
     }
 
     /**
+     * Fetch a registered / loaded command.
+     *
+     * @param clazz the command class
+     * @return the {@link LoadedCommand}, if it exists
+     */
+    public Optional<LoadedCommand> getCommand(Class<?> clazz) {
+        return getAllRecursive().stream().filter(cmd -> cmd.getCommandClass().equals(clazz)).findFirst();
+    }
+
+    /**
      * Fetch all registered commands and their children recursively.
      *
      * @return all registered commands and their children
@@ -199,16 +224,6 @@ public class CommandHandler extends ListenerAdapter {
         for (LoadedCommand cmd : commands)
             all.addAll(cmd.getAllRecursive());
         return all;
-    }
-
-    /**
-     * Fetch a registered / loaded command.
-     *
-     * @param clazz the command class
-     * @return the {@link LoadedCommand}, if it exists
-     */
-    public Optional<LoadedCommand> getCommand(Class<?> clazz) {
-        return getAllRecursive().stream().filter(cmd -> cmd.getCommandClass().equals(clazz)).findFirst();
     }
 
     private void sendMessage(TextChannel channel, Message message) {
@@ -418,6 +433,26 @@ public class CommandHandler extends ListenerAdapter {
          */
         public CommandHandler build() {
             return new CommandHandler(jda, prefix, responses, customParams, concurrent, threadPoolSize, deleteCommands, deleteCommandLength, deleteResponse, deleteResponseLength, help, entriesPerHelpPage, sendTyping);
+        }
+    }
+
+    /**
+     * A simple runnable wrapper to handle exceptions inside.
+     */
+    private final class ThrowingRunnable implements Runnable {
+        private final Runnable delegate;
+
+        private ThrowingRunnable(Runnable delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void run() {
+            try {
+                delegate.run();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }

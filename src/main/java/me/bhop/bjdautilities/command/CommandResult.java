@@ -33,5 +33,4 @@ public enum CommandResult {
     NO_PERMISSION,
     INVALID_ARGUMENTS,
     UNKNOWN_ERROR,
-    INVOKE_ERROR
 }

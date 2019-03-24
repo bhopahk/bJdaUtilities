@@ -62,25 +62,27 @@ public class HelpCommand {
     public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, Supplier<Set<LoadedCommand>> commandFetcher) {
         Set<LoadedCommand> commands = commandFetcher.get();
         int maxPages = commands.size() % numEntries == 0 ? commands.size() / numEntries : commands.size() / numEntries + 1;
-        new ReactionMenu.Builder(member.getJDA())
+        ReactionMenu.Builder menuBuilder = new ReactionMenu.Builder(member.getJDA())
                 .setEmbed(generatePage(1, maxPages, commands.stream().limit(numEntries), member.getJDA()))
                 .onDisplay(menu -> menu.data.put("page", 1))
-                .onClick("\u274C", ReactionMenu::destroy)
-                .onClick("\u25C0", menu -> { //backwards
-                    int page = (int) menu.data.get("page");
-                    if (page == 1)
-                        return;
-                    menu.data.put("page", --page);
-                    menu.getMessage().setContent(generatePage(page, maxPages, commands.stream().skip((page - 1) * numEntries).limit(numEntries), member.getJDA()));
-                })
-                .onClick("\u25B6", menu -> { //forwards
-                    int page = (int) menu.data.get("page");
-                    if (page == maxPages)
-                        return;
-                    menu.data.put("page", ++page);
-                    menu.getMessage().setContent(generatePage(page, maxPages, commands.stream().skip((page - 1) * numEntries).limit(numEntries), member.getJDA()));
-                })
-                .buildAndDisplay(channel);
+                .onClick("\u274C", ReactionMenu::destroy);
+        if (maxPages > 1) {
+            menuBuilder.onClick("\u25C0", menu -> { //backwards
+                int page = (int) menu.data.get("page");
+                if (page == 1)
+                    return;
+                menu.data.put("page", --page);
+                menu.getMessage().setContent(generatePage(page, maxPages, commands.stream().skip((page - 1) * numEntries).limit(numEntries), member.getJDA()));
+            });
+            menuBuilder.onClick("\u25B6", menu -> { //forwards
+                int page = (int) menu.data.get("page");
+                if (page == maxPages)
+                    return;
+                menu.data.put("page", ++page);
+                menu.getMessage().setContent(generatePage(page, maxPages, commands.stream().skip((page - 1) * numEntries).limit(numEntries), member.getJDA()));
+            });
+        }
+        menuBuilder.buildAndDisplay(channel);
         return CommandResult.SUCCESS;
     }
 
