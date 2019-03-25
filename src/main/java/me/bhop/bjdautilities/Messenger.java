@@ -127,14 +127,30 @@ public class Messenger {
         sendMessage(channel, new MessageBuilder().setEmbed(embed).build(), lifetime, onRemove);
     }
 
-    private EditableMessage sendMessage(TextChannel channel, Message message, int lifetime) {
+    /**
+     * Send a compiled {@link Message} to a {@link TextChannel} which will be removed after the supplied number of seconds.
+     *
+     * @param channel the target channel
+     * @param message the message
+     * @param lifetime the amount of time before deletion, in seconds
+     * @return the sent message
+     */
+    public EditableMessage sendMessage(TextChannel channel, Message message, int lifetime) {
         Message sent = channel.sendMessage(message).complete();
         if (lifetime != -1)
             murderer.schedule(() -> sent.delete().queue(), lifetime, TimeUnit.SECONDS);
         return new EditableMessage(sent);
     }
 
-    private void sendMessage(TextChannel channel, Message message, int lifetime, Consumer<TextChannel> onRemove) {
+    /**
+     * Send a compiled {@link Message} to a {@link TextChannel} which will be removed after the supplied number of seconds with a callback upon deletion.
+     *
+     * @param channel the target channel
+     * @param message the message
+     * @param lifetime the amount of time before deletion, in seconds
+     * @param onRemove the deletion callback
+     */
+    public void sendMessage(TextChannel channel, Message message, int lifetime, Consumer<TextChannel> onRemove) {
         channel.sendMessage(message).queue(m -> {
             if (lifetime != -1)
                 murderer.schedule(() -> m.delete().queue($ -> {
