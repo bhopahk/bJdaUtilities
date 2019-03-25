@@ -37,4 +37,5 @@ When submitting PRs, please attempt to follow the style of code in the class whi
 If you use bJDAUtilities in your project, let me know, I would love to hear about it!
 
 [SupportBot](https://github.com/NetBans/SupportBot) > NetBans' SupportBot is a discord bot aimed to provide useful functionality from music to ticket channels to moderation commands.
-[ShadowBot](https://github.com/yourmcgeek/ShadowRewrite) > Shadowbot is a discord bot aimed at helping with different functions in the ShadowNode Minecraft Networks community discord server.
+
+[ShadowBot](https://github.com/yourmcgeek/ShadowRewrite) > Shadowbot is a discord bot aimed at helping with different functions in the [ShadowNode](https://shadownode.ca/) Minecraft Networks community discord server.
