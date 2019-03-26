@@ -3,7 +3,7 @@ bJDAUtilities is a suite of utilities to use in conjunction with [JDA](https://g
 
 ## Getting Started
 The first step is to add this project as a dependency to your project using a method of your choice. Some examples are below:
-> You will also need to have JDA as a dependency.
+> You will also need to have JDA as a dependency. Instructions for how to install JDA can be found [here](https://github.com/dv8FromTheWorld/jda#download).
 
 ##### With Gradle:
 ```groovy
@@ -37,3 +37,5 @@ When submitting PRs, please attempt to follow the style of code in the class whi
 If you use bJDAUtilities in your project, let me know, I would love to hear about it!
 
 [SupportBot](https://github.com/NetBans/SupportBot) > NetBans' SupportBot is a discord bot aimed to provide useful functionality from music to ticket channels to moderation commands.
+
+[ShadowBot](https://github.com/yourmcgeek/ShadowRewrite) > Shadowbot is a discord bot aimed at helping with different functions in the [ShadowNode Minecraft Networks](https://shadownode.ca/) community discord server.
