@@ -30,7 +30,6 @@ import me.bhop.bjdautilities.command.result.CommandResult;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDABuilder;
-import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
@@ -64,13 +63,6 @@ public class Testing {
                 })
                 .autoRegisterPackage("commands")
                 .setGenerateHelp(true).build();
-
-
-
-//        handler.register(new Wahh());
-//        handler.register(new Wahh2());
-//        handler.register(new Wahh3());
-//        handler.register(new Wahh4());
     }
 
 

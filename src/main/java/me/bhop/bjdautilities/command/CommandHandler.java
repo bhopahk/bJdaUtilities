@@ -37,12 +37,9 @@ import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
+import org.reflections.Reflections;
+import org.reflections.scanners.TypeAnnotationsScanner;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -246,50 +243,8 @@ public class CommandHandler extends ListenerAdapter {
     }
 
     private void autoRegister() {
-        autoRegisters.stream().map(this::getClasses).flatMap(List::stream).filter(clazz -> clazz.getAnnotation(Command.class) != null).forEach(this::register);
-    }
-
-    // Credit to https://stackoverflow.com/a/520344/9842323 for the next two methods.
-    private List<Class<?>> getClasses(String packageName) {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        if (classLoader == null)
-            throw new RuntimeException("Unable to fetch classloader to auto register commands!");
-        String path = packageName.replace('.', '/');
-        try {
-            Enumeration<URL> resources = classLoader.getResources(path);
-            List<File> dirs = new ArrayList<>();
-            while (resources.hasMoreElements()) {
-                URL resource = resources.nextElement();
-                dirs.add(new File(resource.getFile()));
-            }
-            List<Class<?>> classes = new ArrayList<>();
-            for (File directory : dirs) {
-                try {
-                    classes.addAll(findClasses(directory, packageName));
-                } catch (ClassNotFoundException e) {
-                    System.out.println("Unable to find class " + e.getMessage());
-                }
-            }
-
-            return classes;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
-    }
-    private List<Class<?>> findClasses(File directory, String packageName) throws ClassNotFoundException {
-        List<Class<?>> classes = new ArrayList<>();
-        if (!directory.exists())
-            return classes;
-
-        File[] files = directory.listFiles();
-        for (File file : Objects.requireNonNull(files)) {
-            if (file.isDirectory())
-                classes.addAll(findClasses(file, packageName + "." + file.getName()));
-            else if (file.getName().endsWith(".class"))
-                classes.add(Class.forName(packageName + '.' + file.getName().substring(0, file.getName().length() - 6)));
-        }
-        return classes;
+        autoRegisters.stream().map(pkg -> new Reflections(pkg, new TypeAnnotationsScanner()).getTypesAnnotatedWith(Command.class, true))
+                .flatMap(Set::stream).forEach(this::register);
     }
 
     // ------------------------------ Builder ------------------------------
