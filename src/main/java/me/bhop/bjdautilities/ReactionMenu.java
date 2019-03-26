@@ -27,6 +27,7 @@ package me.bhop.bjdautilities;
 
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
+import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.events.message.guild.react.GuildMessageReactionAddEvent;
@@ -35,7 +36,9 @@ import net.dv8tion.jda.core.exceptions.ErrorResponseException;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
 
 import java.util.*;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -51,6 +54,7 @@ public class ReactionMenu extends ListenerAdapter {
     private final List<Consumer<ReactionMenu>> openEvents;
     private final List<Consumer<ReactionMenu>> closeEvents;
     private final Map<String, Consumer<ReactionMenu>> addActions;
+    private final Map<String, BiConsumer<ReactionMenu, Member>> addActions2;
     private final Map<String, Consumer<ReactionMenu>> removeActions;
     private final boolean removeReactions;
 
@@ -66,6 +70,7 @@ public class ReactionMenu extends ListenerAdapter {
             List<Consumer<ReactionMenu>> openEvents,
             List<Consumer<ReactionMenu>> closeEvents,
             Map<String, Consumer<ReactionMenu>> addActions,
+            Map<String, BiConsumer<ReactionMenu, Member>> addActions2,
             Map<String, Consumer<ReactionMenu>> removeActions,
             boolean removeReactions
     ) {
@@ -75,6 +80,7 @@ public class ReactionMenu extends ListenerAdapter {
         this.openEvents = openEvents;
         this.closeEvents = closeEvents;
         this.addActions = addActions;
+        this.addActions2 = addActions2;
         this.removeActions = removeActions;
 
         this.removeReactions = removeReactions;
@@ -90,6 +96,10 @@ public class ReactionMenu extends ListenerAdapter {
         Consumer<ReactionMenu> action = addActions.get(id);
         if (action != null)
             action.accept(this);
+
+        BiConsumer<ReactionMenu, Member> action2 = addActions2.get(id);
+        if (action2 != null)
+            action2.accept(this, event.getMember());
 
         try {
             if (removeReactions)
@@ -140,12 +150,14 @@ public class ReactionMenu extends ListenerAdapter {
      * @param seconds time
      */
     public void destroyIn(int seconds) {
-        if (message == null)
-            return;
-        message.cancelUpdater();
-        closeEvents.forEach(action -> action.accept(this));
-        message.getMessage().delete().queueAfter(seconds, TimeUnit.SECONDS);
-        message = null;
+        Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+            if (message == null)
+                return;
+            message.cancelUpdater();
+            closeEvents.forEach(action -> action.accept(this));
+            message.getMessage().delete().complete();
+            message = null;
+        }, seconds, TimeUnit.SECONDS);
     }
 
     /**
@@ -201,6 +213,7 @@ public class ReactionMenu extends ListenerAdapter {
         private final List<Consumer<ReactionMenu>> openEvents = new ArrayList<>();
         private final List<Consumer<ReactionMenu>> closeEvents = new ArrayList<>();
         private final Map<String, Consumer<ReactionMenu>> addActions = new HashMap<>();
+        private final Map<String, BiConsumer<ReactionMenu, Member>> addActions2 = new HashMap<>();
         private final Map<String, Consumer<ReactionMenu>> removeActions = new HashMap<>();
         private boolean removeReactions = true;
 
@@ -275,11 +288,11 @@ public class ReactionMenu extends ListenerAdapter {
         }
 
         /**
-         * Add a listener for when the menu is deleted.
+         * Add a listener for when the menu is destroyed.
          *
          * @param action the action to be called on delete
          */
-        public Builder onDelete(Consumer<ReactionMenu> action) {
+        public Builder onDestroy(Consumer<ReactionMenu> action) {
             closeEvents.add(action);
             return this;
         }
@@ -295,6 +308,20 @@ public class ReactionMenu extends ListenerAdapter {
         public Builder onClick(String name, Consumer<ReactionMenu> action) {
             startingReactions.add(name);
             addActions.put(name, action);
+            return this;
+        }
+
+        /**
+         * Add a click listener for an emote. This listener, however, supplies both the menu and the {@link Member} who added the reaction.
+         *
+         * This will automatically add the emote to the starting emote list.
+         *
+         * @param name the emote name
+         * @param action the action to be called when the emote is clicked
+         */
+        public Builder onClick(String name, BiConsumer<ReactionMenu, Member> action) {
+            startingReactions.add(name);
+            addActions2.put(name, action);
             return this;
         }
 
@@ -325,7 +352,7 @@ public class ReactionMenu extends ListenerAdapter {
          * @return the compiled menu
          */
         public ReactionMenu build() {
-            ReactionMenu menu = new ReactionMenu(jda, message, startingReactions, openEvents, closeEvents, addActions, removeActions, removeReactions);
+            ReactionMenu menu = new ReactionMenu(jda, message, startingReactions, openEvents, closeEvents, addActions, addActions2, removeActions, removeReactions);
             jda.addEventListener(menu);
             return menu;
         }

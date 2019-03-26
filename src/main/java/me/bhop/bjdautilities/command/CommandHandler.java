@@ -25,6 +25,7 @@
 
 package me.bhop.bjdautilities.command;
 
+import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.provided.HelpCommand;
 import me.bhop.bjdautilities.command.response.CommandResponses;
 import me.bhop.bjdautilities.command.response.DefaultCommandResponses;
@@ -37,6 +38,11 @@ import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -56,6 +62,7 @@ public class CommandHandler extends ListenerAdapter {
     private final Set<LoadedCommand> commands = new HashSet<>();
     private final List<Object> params;
     private final Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results;
+    private final List<String> autoRegisters;
 
     private final boolean deleteCommands;
     private final int deleteCommandLength;
@@ -70,18 +77,19 @@ public class CommandHandler extends ListenerAdapter {
      * @param jda the {@link JDA} instance
      */
     public CommandHandler(JDA jda) {
-        this(jda, "!", new DefaultCommandResponses(), new ArrayList<>(), new HashMap<>(), true, 2, true, 10, true, 20, false, 5, true);
+        this(jda, "!", new DefaultCommandResponses(), new ArrayList<>(), new HashMap<>(), new ArrayList<>(), true, 2, true, 10, true, 20, false, 5, true);
     }
 
     /**
      * Create a command handler with custom settings. Using the {@link Builder} is heavily recommended.
      */
-    private CommandHandler(JDA jda, String prefix, CommandResponses responses, List<Object> customParams, Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results, boolean concurrent, int threadPoolSize, boolean deleteCommands, int deleteCommandLength, boolean deleteResponse, int deleteResponseLength, boolean help, int entriesPerPage, boolean sendTyping) {
+    private CommandHandler(JDA jda, String prefix, CommandResponses responses, List<Object> customParams, Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results, List<String> autoRegisters, boolean concurrent, int threadPoolSize, boolean deleteCommands, int deleteCommandLength, boolean deleteResponse, int deleteResponseLength, boolean help, int entriesPerPage, boolean sendTyping) {
         this.prefix = prefix;
         this.responses = responses;
 
         params = customParams;
         this.results = results;
+        this.autoRegisters = autoRegisters;
 
         executor = concurrent ? Executors.newFixedThreadPool(threadPoolSize) : null;
 
@@ -96,6 +104,8 @@ public class CommandHandler extends ListenerAdapter {
         this.sendTyping = sendTyping;
 
         jda.addEventListener(this);
+
+        autoRegister();
     }
 
     // Events
@@ -107,7 +117,7 @@ public class CommandHandler extends ListenerAdapter {
 
         if (event.getAuthor().isBot())
             return;
-        if (!event.getMessage().getContentRaw().startsWith(prefix))
+        if (!event.getMessage().getContentRaw().startsWith(prefix) || event.getMessage().getContentRaw().length() <= prefix.length())
             return;
 
         if (deleteCommands && deleteCommandLength > 0)
@@ -146,7 +156,6 @@ public class CommandHandler extends ListenerAdapter {
             if (result instanceof CommandResult.NoPermission)
                 sendMessage(channel, responses.noPerms(message, cmd.getPermission()));
             else if (result instanceof CommandResult.InvalidArguments) {
-                System.out.println("Hello world");
                 if (cmd.hasUsage())
                     cmd.usage(member, channel, message, label, args);
                 else sendMessage(channel, responses.usage(message, args, cmd.getUsageString()));
@@ -236,6 +245,53 @@ public class CommandHandler extends ListenerAdapter {
         });
     }
 
+    private void autoRegister() {
+        autoRegisters.stream().map(this::getClasses).flatMap(List::stream).filter(clazz -> clazz.getAnnotation(Command.class) != null).forEach(this::register);
+    }
+
+    // Credit to https://stackoverflow.com/a/520344/9842323 for the next two methods.
+    private List<Class<?>> getClasses(String packageName) {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        if (classLoader == null)
+            throw new RuntimeException("Unable to fetch classloader to auto register commands!");
+        String path = packageName.replace('.', '/');
+        try {
+            Enumeration<URL> resources = classLoader.getResources(path);
+            List<File> dirs = new ArrayList<>();
+            while (resources.hasMoreElements()) {
+                URL resource = resources.nextElement();
+                dirs.add(new File(resource.getFile()));
+            }
+            List<Class<?>> classes = new ArrayList<>();
+            for (File directory : dirs) {
+                try {
+                    classes.addAll(findClasses(directory, packageName));
+                } catch (ClassNotFoundException e) {
+                    System.out.println("Unable to find class " + e.getMessage());
+                }
+            }
+
+            return classes;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+    private List<Class<?>> findClasses(File directory, String packageName) throws ClassNotFoundException {
+        List<Class<?>> classes = new ArrayList<>();
+        if (!directory.exists())
+            return classes;
+
+        File[] files = directory.listFiles();
+        for (File file : Objects.requireNonNull(files)) {
+            if (file.isDirectory())
+                classes.addAll(findClasses(file, packageName + "." + file.getName()));
+            else if (file.getName().endsWith(".class"))
+                classes.add(Class.forName(packageName + '.' + file.getName().substring(0, file.getName().length() - 6)));
+        }
+        return classes;
+    }
+
     // ------------------------------ Builder ------------------------------
 
     /**
@@ -250,6 +306,8 @@ public class CommandHandler extends ListenerAdapter {
         private final List<Object> customParams = new ArrayList<>();
         // Result Handlers
         private final Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results = new HashMap<>();
+        // Auto Register Packages
+        private final List<String> autoRegisters = new ArrayList<>();
 
         // Concurrent Execution
         private boolean concurrent = true;
@@ -266,8 +324,6 @@ public class CommandHandler extends ListenerAdapter {
         private int entriesPerHelpPage = 5;
         // Send typing before a response
         private boolean sendTyping = true;
-        // Whether to search for commands in the classpath and register them. This is moderately slow.
-        private boolean autoRegister = false;
 
         /**
          * Create a new builder instance.
@@ -432,15 +488,14 @@ public class CommandHandler extends ListenerAdapter {
         }
 
         /**
-         * <b>This is not a supported feature as of 3/24/19. It will potentially be coming in the future.</b>
+         * Adds the supplied package to the list of packages to search for commands to automatically register.
          *
-         * Automatically register command classes in the classpath.
+         * For example, adding 'com.example.bot.commands' would search all classes with the package 'com.example.bot.commands'.
          *
-         * @param autoRegister whether to automatically register commands
+         * @param pkg The package to search
          */
-        @Deprecated
-        public Builder setAutoRegister(boolean autoRegister) {
-            this.autoRegister = autoRegister;
+        public Builder autoRegisterPackage(String pkg) {
+            this.autoRegisters.add(pkg);
             return this;
         }
 
@@ -450,7 +505,7 @@ public class CommandHandler extends ListenerAdapter {
          * @return the compiled {@link CommandHandler}.
          */
         public CommandHandler build() {
-            return new CommandHandler(jda, prefix, responses, customParams, results, concurrent, threadPoolSize, deleteCommands, deleteCommandLength, deleteResponse, deleteResponseLength, help, entriesPerHelpPage, sendTyping);
+            return new CommandHandler(jda, prefix, responses, customParams, results, autoRegisters, concurrent, threadPoolSize, deleteCommands, deleteCommandLength, deleteResponse, deleteResponseLength, help, entriesPerHelpPage, sendTyping);
         }
     }
 

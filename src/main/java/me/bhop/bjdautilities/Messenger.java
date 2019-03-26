@@ -45,7 +45,7 @@ public class Messenger {
      * Create a new messenger instance with the default pool count of 2.
      */
     public Messenger() {
-        murderer = Executors.newScheduledThreadPool(2);
+        this(2);
     }
 
     /**
