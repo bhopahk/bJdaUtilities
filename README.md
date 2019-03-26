@@ -3,7 +3,7 @@ bJDAUtilities is a suite of utilities to use in conjunction with [JDA](https://g
 
 ## Getting Started
 The first step is to add this project as a dependency to your project using a method of your choice. Some examples are below:
-> You will also need to have JDA as a dependency.
+> You will also need to have JDA as a dependency. To see how to add JDA as a dependency, view JDA's documentation [here](https://github.com/dv8FromTheWorld/jda#download)
 
 ##### With Gradle:
 ```groovy
