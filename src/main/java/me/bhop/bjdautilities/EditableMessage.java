@@ -1,55 +1,33 @@
-/*
- * This file is part of bJdaUtilities, licensed under the MIT License.
- *
- * Copyright (c) 2019 bhop_ (Matt Worzala)
- * Copyright (c) 2019 contributors
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
 package me.bhop.bjdautilities;
 
+import net.dv8tion.jda.client.entities.Group;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.MessageEmbed;
+import net.dv8tion.jda.core.entities.*;
+import net.dv8tion.jda.core.requests.RestAction;
+import net.dv8tion.jda.core.requests.restaction.AuditableRestAction;
+import net.dv8tion.jda.core.requests.restaction.MessageAction;
 
+import java.time.OffsetDateTime;
+import java.util.Formatter;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-/**
- * A convenient message wrapper for content updating.
- */
-public class EditableMessage {
+public class EditableMessage implements Message {
+    private static final ScheduledExecutorService executor = Executors.newScheduledThreadPool(2);
+
+    public static EditableMessage wrap(Message message) {
+        return new EditableMessage(message);
+    }
+
     private Message delegate;
-    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
     private ScheduledFuture<?> task = null;
 
-    /**
-     * Create a new editable message instance given an already sent {@link Message}
-     *
-     * @param message the delegate message
-     */
-    public EditableMessage(Message message) {
+    private EditableMessage(Message message) {
         this.delegate = message;
     }
 
@@ -119,21 +97,240 @@ public class EditableMessage {
         task = null;
     }
 
-    /**
-     * Fetch the Id of the delegate message.
-     *
-     * @return the underlying {@link Message} id
-     */
-    public long getId() {
-        return delegate.getIdLong();
+    // Below is all delegate methods...
+
+    @Override
+    public List<User> getMentionedUsers() {
+        return delegate.getMentionedUsers();
     }
 
-    /**
-     * Fetch the delegate message
-     *
-     * @return the underlying {@link Message}
-     */
-    public Message getMessage() {
-        return delegate;
+    @Override
+    public List<TextChannel> getMentionedChannels() {
+        return delegate.getMentionedChannels();
+    }
+
+    @Override
+    public List<Role> getMentionedRoles() {
+        return delegate.getMentionedRoles();
+    }
+
+    @Override
+    public List<Member> getMentionedMembers(Guild guild) {
+        return delegate.getMentionedMembers(guild);
+    }
+
+    @Override
+    public List<Member> getMentionedMembers() {
+        return delegate.getMentionedMembers();
+    }
+
+    @Override
+    public List<IMentionable> getMentions(MentionType... types) {
+        return delegate.getMentions(types);
+    }
+
+    @Override
+    public boolean isMentioned(IMentionable mentionable, MentionType... types) {
+        return delegate.isMentioned(mentionable, types);
+    }
+
+    @Override
+    public boolean mentionsEveryone() {
+        return delegate.mentionsEveryone();
+    }
+
+    @Override
+    public boolean isEdited() {
+        return delegate.isEdited();
+    }
+
+    @Override
+    public OffsetDateTime getEditedTime() {
+        return delegate.getEditedTime();
+    }
+
+    @Override
+    public User getAuthor() {
+        return delegate.getAuthor();
+    }
+
+    @Override
+    public Member getMember() {
+        return delegate.getMember();
+    }
+
+    @Override
+    public String getJumpUrl() {
+        return delegate.getJumpUrl();
+    }
+
+    @Override
+    public String getContentDisplay() {
+        return delegate.getContentDisplay();
+    }
+
+    @Override
+    public String getContentRaw() {
+        return delegate.getContentRaw();
+    }
+
+    @Override
+    public String getContentStripped() {
+        return delegate.getContentStripped();
+    }
+
+    @Override
+    public List<String> getInvites() {
+        return delegate.getInvites();
+    }
+
+    @Override
+    public String getNonce() {
+        return delegate.getNonce();
+    }
+
+    @Override
+    public boolean isFromType(ChannelType type) {
+        return delegate.isFromType(type);
+    }
+
+    @Override
+    public ChannelType getChannelType() {
+        return delegate.getChannelType();
+    }
+
+    @Override
+    public boolean isWebhookMessage() {
+        return delegate.isWebhookMessage();
+    }
+
+    @Override
+    public MessageChannel getChannel() {
+        return delegate.getChannel();
+    }
+
+    @Override
+    public PrivateChannel getPrivateChannel() {
+        return delegate.getPrivateChannel();
+    }
+
+    @Override
+    public Group getGroup() {
+        return delegate.getGroup();
+    }
+
+    @Override
+    public TextChannel getTextChannel() {
+        return delegate.getTextChannel();
+    }
+
+    @Override
+    public Category getCategory() {
+        return delegate.getCategory();
+    }
+
+    @Override
+    public Guild getGuild() {
+        return delegate.getGuild();
+    }
+
+    @Override
+    public List<Attachment> getAttachments() {
+        return delegate.getAttachments();
+    }
+
+    @Override
+    public List<MessageEmbed> getEmbeds() {
+        return delegate.getEmbeds();
+    }
+
+    @Override
+    public List<Emote> getEmotes() {
+        return delegate.getEmotes();
+    }
+
+    @Override
+    public List<MessageReaction> getReactions() {
+        return delegate.getReactions();
+    }
+
+    @Override
+    public boolean isTTS() {
+        return delegate.isTTS();
+    }
+
+    @Override
+    public MessageAction editMessage(CharSequence newContent) {
+        return delegate.editMessage(newContent);
+    }
+
+    @Override
+    public MessageAction editMessage(MessageEmbed newContent) {
+        return delegate.editMessage(newContent);
+    }
+
+    @Override
+    public MessageAction editMessageFormat(String format, Object... args) {
+        return delegate.editMessageFormat(format, args);
+    }
+
+    @Override
+    public MessageAction editMessage(Message newContent) {
+        return delegate.editMessage(newContent);
+    }
+
+    @Override
+    public AuditableRestAction<Void> delete() {
+        return delegate.delete();
+    }
+
+    @Override
+    public JDA getJDA() {
+        return delegate.getJDA();
+    }
+
+    @Override
+    public boolean isPinned() {
+        return delegate.isPinned();
+    }
+
+    @Override
+    public RestAction<Void> pin() {
+        return delegate.pin();
+    }
+
+    @Override
+    public RestAction<Void> unpin() {
+        return delegate.unpin();
+    }
+
+    @Override
+    public RestAction<Void> addReaction(Emote emote) {
+        return delegate.addReaction(emote);
+    }
+
+    @Override
+    public RestAction<Void> addReaction(String unicode) {
+        return delegate.addReaction(unicode);
+    }
+
+    @Override
+    public RestAction<Void> clearReactions() {
+        return delegate.clearReactions();
+    }
+
+    @Override
+    public MessageType getType() {
+        return delegate.getType();
+    }
+
+    @Override
+    public void formatTo(Formatter formatter, int flags, int width, int precision) {
+        delegate.formatTo(formatter, flags, width, precision);
+    }
+
+    @Override
+    public long getIdLong() {
+        return delegate.getIdLong();
     }
 }

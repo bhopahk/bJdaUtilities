@@ -25,7 +25,6 @@
 
 package me.bhop.bjdautilities.command;
 
-import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.provided.HelpCommand;
 import me.bhop.bjdautilities.command.response.CommandResponses;
 import me.bhop.bjdautilities.command.response.DefaultCommandResponses;
@@ -37,8 +36,6 @@ import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
-import org.reflections.Reflections;
-import org.reflections.scanners.TypeAnnotationsScanner;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -55,11 +52,11 @@ public class CommandHandler extends ListenerAdapter {
     private final ExecutorService executor;
 
     private final String prefix;
+    private final Map<Long, String> perGuildPrefixes;
     private final CommandResponses responses;
     private final Set<LoadedCommand> commands = new HashSet<>();
     private final List<Object> params;
     private final Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results;
-    private final List<String> autoRegisters;
 
     private final boolean deleteCommands;
     private final int deleteCommandLength;
@@ -74,19 +71,19 @@ public class CommandHandler extends ListenerAdapter {
      * @param jda the {@link JDA} instance
      */
     public CommandHandler(JDA jda) {
-        this(jda, "!", new DefaultCommandResponses(), new ArrayList<>(), new HashMap<>(), new ArrayList<>(), true, 2, true, 10, true, 20, false, 5, true);
+        this(jda, "!", new HashMap<>(), new DefaultCommandResponses(), new ArrayList<>(), new HashMap<>(), true, 2, true, 10, true, 20, false, 5, true);
     }
 
     /**
      * Create a command handler with custom settings. Using the {@link Builder} is heavily recommended.
      */
-    private CommandHandler(JDA jda, String prefix, CommandResponses responses, List<Object> customParams, Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results, List<String> autoRegisters, boolean concurrent, int threadPoolSize, boolean deleteCommands, int deleteCommandLength, boolean deleteResponse, int deleteResponseLength, boolean help, int entriesPerPage, boolean sendTyping) {
+    private CommandHandler(JDA jda, String prefix, Map<Long, String> prefixes, CommandResponses responses, List<Object> customParams, Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results, boolean concurrent, int threadPoolSize, boolean deleteCommands, int deleteCommandLength, boolean deleteResponse, int deleteResponseLength, boolean help, int entriesPerPage, boolean sendTyping) {
         this.prefix = prefix;
+        this.perGuildPrefixes = prefixes;
         this.responses = responses;
 
         params = customParams;
         this.results = results;
-        this.autoRegisters = autoRegisters;
 
         executor = concurrent ? Executors.newFixedThreadPool(threadPoolSize) : null;
 
@@ -101,8 +98,6 @@ public class CommandHandler extends ListenerAdapter {
         this.sendTyping = sendTyping;
 
         jda.addEventListener(this);
-
-        autoRegister();
     }
 
     // Events
@@ -114,7 +109,8 @@ public class CommandHandler extends ListenerAdapter {
 
         if (event.getAuthor().isBot())
             return;
-        if (!event.getMessage().getContentRaw().startsWith(prefix) || event.getMessage().getContentRaw().length() <= prefix.length())
+        String guildPrefix = perGuildPrefixes.getOrDefault(event.getGuild().getIdLong(), this.prefix);
+        if (!event.getMessage().getContentRaw().startsWith(guildPrefix) || event.getMessage().getContentRaw().length() <= guildPrefix.length())
             return;
 
         if (deleteCommands && deleteCommandLength > 0)
@@ -212,6 +208,15 @@ public class CommandHandler extends ListenerAdapter {
     }
 
     /**
+     * Get the per guild prefixes currently registered.
+     *
+     * @return the registered per guild prefix
+     */
+    public Map<Long, String> getPerGuildPrefixes() {
+        return perGuildPrefixes;
+    }
+
+    /**
      * Fetch a registered / loaded command.
      *
      * @param clazz the command class
@@ -242,11 +247,6 @@ public class CommandHandler extends ListenerAdapter {
         });
     }
 
-    private void autoRegister() {
-        autoRegisters.stream().map(pkg -> new Reflections(pkg, new TypeAnnotationsScanner()).getTypesAnnotatedWith(Command.class, true))
-                .flatMap(Set::stream).forEach(this::register);
-    }
-
     // ------------------------------ Builder ------------------------------
 
     /**
@@ -255,14 +255,13 @@ public class CommandHandler extends ListenerAdapter {
     public static class Builder {
         private final JDA jda;
         private String prefix = "!";
+        private Map<Long, String> perGuildPrefix = new HashMap<>();
         private CommandResponses responses = new DefaultCommandResponses();
 
         // Custom Parameters
         private final List<Object> customParams = new ArrayList<>();
         // Result Handlers
         private final Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results = new HashMap<>();
-        // Auto Register Packages
-        private final List<String> autoRegisters = new ArrayList<>();
 
         // Concurrent Execution
         private boolean concurrent = true;
@@ -290,12 +289,21 @@ public class CommandHandler extends ListenerAdapter {
         }
 
         /**
-         * Set the command prefix.
+         * Set the default command prefix to be used if there is not a guild specific prefix specified.
          *
          * @param prefix the prefix
          */
         public Builder setPrefix(String prefix) {
             this.prefix = prefix;
+            return this;
+        }
+
+        /**
+         * @param guildId The guild which this prefix applies to.
+         * @param prefix The prefix to use
+         */
+        public Builder addGuildSpecificPrefix(Long guildId, String prefix) {
+            perGuildPrefix.put(guildId, prefix);
             return this;
         }
 
@@ -443,24 +451,12 @@ public class CommandHandler extends ListenerAdapter {
         }
 
         /**
-         * Adds the supplied package to the list of packages to search for commands to automatically register.
-         *
-         * For example, adding 'com.example.bot.commands' would search all classes with the package 'com.example.bot.commands'.
-         *
-         * @param pkg The package to search
-         */
-        public Builder autoRegisterPackage(String pkg) {
-            this.autoRegisters.add(pkg);
-            return this;
-        }
-
-        /**
          * Build a new {@link CommandHandler} with the given properties.
          *
          * @return the compiled {@link CommandHandler}.
          */
         public CommandHandler build() {
-            return new CommandHandler(jda, prefix, responses, customParams, results, autoRegisters, concurrent, threadPoolSize, deleteCommands, deleteCommandLength, deleteResponse, deleteResponseLength, help, entriesPerHelpPage, sendTyping);
+            return new CommandHandler(jda, prefix, perGuildPrefix, responses, customParams, results, concurrent, threadPoolSize, deleteCommands, deleteCommandLength, deleteResponse, deleteResponseLength, help, entriesPerHelpPage, sendTyping);
         }
     }
 

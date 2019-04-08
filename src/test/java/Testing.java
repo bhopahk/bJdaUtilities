@@ -61,7 +61,7 @@ public class Testing {
                 .addResultHandler(CustomResults.CoolResult.class, (result, command, message) -> {
                     message.getTextChannel().sendMessage("I am a custom handler w/ value of '" + result.value + "'").complete();
                 })
-                .autoRegisterPackage("commands")
+//                .autoRegisterPackage("commands")
                 .setGenerateHelp(true).build();
     }
 

@@ -30,6 +30,7 @@ import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.events.message.guild.react.GuildMessageReactionAddEvent;
 import net.dv8tion.jda.core.events.message.guild.react.GuildMessageReactionRemoveEvent;
 import net.dv8tion.jda.core.exceptions.ErrorResponseException;
@@ -56,6 +57,7 @@ public class ReactionMenu extends ListenerAdapter {
     private final Map<String, Consumer<ReactionMenu>> addActions;
     private final Map<String, BiConsumer<ReactionMenu, Member>> addActions2;
     private final Map<String, Consumer<ReactionMenu>> removeActions;
+    private final Map<String, BiConsumer<ReactionMenu, Member>> removeActions2;
     private final boolean removeReactions;
 
     public final Map<String, Object> data = new HashMap<>();
@@ -72,6 +74,7 @@ public class ReactionMenu extends ListenerAdapter {
             Map<String, Consumer<ReactionMenu>> addActions,
             Map<String, BiConsumer<ReactionMenu, Member>> addActions2,
             Map<String, Consumer<ReactionMenu>> removeActions,
+            Map<String, BiConsumer<ReactionMenu, Member>> removeActions2,
             boolean removeReactions
     ) {
         this.jda = jda;
@@ -82,6 +85,7 @@ public class ReactionMenu extends ListenerAdapter {
         this.addActions = addActions;
         this.addActions2 = addActions2;
         this.removeActions = removeActions;
+        this.removeActions2 = removeActions2;
 
         this.removeReactions = removeReactions;
     }
@@ -90,7 +94,7 @@ public class ReactionMenu extends ListenerAdapter {
     @Override
     @SuppressWarnings("Duplicates")
     public void onGuildMessageReactionAdd(GuildMessageReactionAddEvent event) {
-        if (message == null || message.getId() != event.getMessageIdLong() || event.getUser().isBot())
+        if (message == null || message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
             return;
         String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
         Consumer<ReactionMenu> action = addActions.get(id);
@@ -110,11 +114,14 @@ public class ReactionMenu extends ListenerAdapter {
     @Override
     @SuppressWarnings("Duplicates")
     public void onGuildMessageReactionRemove(GuildMessageReactionRemoveEvent event) {
-        if (message == null || message.getId() != event.getMessageIdLong() || event.getUser().isBot())
+        if (message == null || message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
             return;
         Consumer<ReactionMenu> action = removeActions.get(event.getReaction().getReactionEmote().getName());
         if (action != null)
             action.accept(this);
+        BiConsumer<ReactionMenu, Member> action2 = removeActions2.get(event.getReaction().getReactionEmote().getName());
+        if (action2 != null)
+            action2.accept(this, event.getMember());
     }
 
     /**
@@ -126,12 +133,12 @@ public class ReactionMenu extends ListenerAdapter {
     public void display(TextChannel channel) {
         if (message != null)
             throw new IllegalStateException("This menu has already been displayed!");
-        message = new EditableMessage(channel.sendMessage(unsentMessage.build()).complete());
+        message = EditableMessage.wrap(channel.sendMessage(unsentMessage.build()).complete());
         for (String emoteId : startingReactions) {
             if (emoteId.charAt(0) > 128)
-                message.getMessage().addReaction(emoteId).queue();
+                message.addReaction(emoteId).queue();
             else
-                message.getMessage().addReaction(channel.getGuild().getEmotesByName(emoteId, true).get(0)).queue();
+                message.addReaction(channel.getGuild().getEmotesByName(emoteId, true).get(0)).queue();
 
         }
         openEvents.forEach(action -> action.accept(this));
@@ -155,7 +162,7 @@ public class ReactionMenu extends ListenerAdapter {
                 return;
             message.cancelUpdater();
             closeEvents.forEach(action -> action.accept(this));
-            message.getMessage().delete().complete();
+            message.delete().complete();
             message = null;
         }, seconds, TimeUnit.SECONDS);
     }
@@ -169,9 +176,9 @@ public class ReactionMenu extends ListenerAdapter {
      */
     public void addReaction(String emoteId) {
         if (emoteId.charAt(0) > 128)
-            message.getMessage().addReaction(emoteId).queue();
+            message.addReaction(emoteId).queue();
         else
-            message.getMessage().addReaction(message.getMessage().getGuild().getEmotesByName(emoteId, true).get(0)).queue();
+            message.addReaction(message.getGuild().getEmotesByName(emoteId, true).get(0)).queue();
     }
 
     /**
@@ -181,8 +188,15 @@ public class ReactionMenu extends ListenerAdapter {
      */
     public void removeReaction(String name) {
         message.refreshMessage(jda);
-        message.getMessage().getReactions().stream().filter(reaction -> reaction.getReactionEmote().getName().equals(name)).forEach(reaction -> {
+        message.getReactions().stream().filter(reaction -> reaction.getReactionEmote().getName().equals(name)).forEach(reaction -> {
             reaction.removeReaction().queue(); //todo may not work with custom emotes
+        });
+    }
+
+    public void removeReaction(String name, User userId) {
+        message.refreshMessage(jda);
+        message.getReactions().stream().filter(reaction -> reaction.getReactionEmote().getName().equals(name)).forEach(reaction -> {
+            reaction.removeReaction(userId).queue(); //todo may not work with custom emotes
         });
     }
 
@@ -215,6 +229,7 @@ public class ReactionMenu extends ListenerAdapter {
         private final Map<String, Consumer<ReactionMenu>> addActions = new HashMap<>();
         private final Map<String, BiConsumer<ReactionMenu, Member>> addActions2 = new HashMap<>();
         private final Map<String, Consumer<ReactionMenu>> removeActions = new HashMap<>();
+        private final Map<String, BiConsumer<ReactionMenu, Member>> removeActions2 = new HashMap<>();
         private boolean removeReactions = true;
 
         /**
@@ -337,6 +352,18 @@ public class ReactionMenu extends ListenerAdapter {
         }
 
         /**
+         * Add a remove listener for an emote. This listener, however, supplies both the menu and the {@link Member} who added the reaction.
+         *
+         * @param name the emote name
+         * @param action the action to be called when the emote is removed
+         */
+        public Builder onRemove(String name, BiConsumer<ReactionMenu, Member> action) {
+            startingReactions.add(name);
+            removeActions2.put(name, action);
+            return this;
+        }
+
+        /**
          * Set whether or not reactions should be automatically removed when they are added by non-bot users.
          *
          * @param removeReactions whether to remove new reactions
@@ -352,7 +379,7 @@ public class ReactionMenu extends ListenerAdapter {
          * @return the compiled menu
          */
         public ReactionMenu build() {
-            ReactionMenu menu = new ReactionMenu(jda, message, startingReactions, openEvents, closeEvents, addActions, addActions2, removeActions, removeReactions);
+            ReactionMenu menu = new ReactionMenu(jda, message, startingReactions, openEvents, closeEvents, addActions, addActions2, removeActions, removeActions2, removeReactions);
             jda.addEventListener(menu);
             return menu;
         }

@@ -139,7 +139,7 @@ public class Messenger {
         Message sent = channel.sendMessage(message).complete();
         if (lifetime != -1)
             murderer.schedule(() -> sent.delete().queue(), lifetime, TimeUnit.SECONDS);
-        return new EditableMessage(sent);
+        return EditableMessage.wrap(sent);
     }
 
     /**
