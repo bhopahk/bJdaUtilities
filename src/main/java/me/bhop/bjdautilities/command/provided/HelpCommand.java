@@ -30,12 +30,16 @@ import me.bhop.bjdautilities.command.LoadedCommand;
 import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.annotation.Execute;
 import me.bhop.bjdautilities.command.result.CommandResult;
+import me.bhop.bjdautilities.pagination.Page;
+import me.bhop.bjdautilities.pagination.PageBuilder;
+import me.bhop.bjdautilities.pagination.PaginationEmbed;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.*;
 
 import java.awt.*;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -60,38 +64,28 @@ public class HelpCommand {
     @Execute
     public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, Supplier<Set<LoadedCommand>> commandFetcher) {
         Set<LoadedCommand> commands = commandFetcher.get();
-        int count = (int) commandFetcher.get().stream().filter(cmd -> !usePermissions || member.hasPermission(cmd.getPermission())).count();
-        int maxPages = count % numEntries == 0 ? count / numEntries : count / numEntries + 1;
-        ReactionMenu.Builder menuBuilder = new ReactionMenu.Builder(member.getJDA())
-                .setEmbed(generatePage(1, maxPages, commands.stream().filter(cmd -> !usePermissions || member.hasPermission(cmd.getPermission())).limit(numEntries), member))
-                .onDisplay(menu -> menu.data.put("page", 1))
-                .onClick("\u274C", ReactionMenu::destroy);
-        if (maxPages > 1) {
-            menuBuilder.onClick("\u25C0", menu -> { //backwards
-                int page = (int) menu.data.get("page");
-                if (page == 1)
-                    return;
-                menu.data.put("page", --page);
-                menu.getMessage().setContent(generatePage(page, maxPages, commands.stream().filter(cmd -> !usePermissions || member.hasPermission(cmd.getPermission())).skip((page - 1) * numEntries).limit(numEntries), member));
-            });
-            menuBuilder.onClick("\u25B6", menu -> { //forwards
-                int page = (int) menu.data.get("page");
-                if (page == maxPages)
-                    return;
-                menu.data.put("page", ++page);
-                menu.getMessage().setContent(generatePage(page, maxPages, commands.stream().filter(cmd -> !usePermissions || member.hasPermission(cmd.getPermission())).skip((page - 1) * numEntries).limit(numEntries), member));
-            });
+        int page = 1;
+        int count = 1;
+        int size = (int) commandFetcher.get().stream().filter(cmd -> !usePermissions || member.hasPermission(cmd.getPermission())).count();
+        int maxPages = size % numEntries == 0 ? size / numEntries : size / numEntries + 1;
+
+        List<Page> content = new ArrayList<>();
+        PaginationEmbed.Builder builder = new PaginationEmbed.Builder(member.getJDA());
+        while (count <= maxPages) {
+            content.add(generatePage(page,numEntries, maxPages, commands.stream()
+                    .filter(cmd -> !usePermissions || member.hasPermission(cmd.getPermission())).skip((count - 1) * numEntries).limit(numEntries), member));
+            if (page < maxPages)
+                page++;
+            count++;
         }
-        menuBuilder.buildAndDisplay(channel);
+        content.forEach(page1 -> builder.addPage(page1));
+        builder.buildAndDisplay(channel);
         return CommandResult.success();
     }
 
-    private MessageEmbed generatePage(int page, int max, Stream<LoadedCommand> commands, Member sender) {
-        EmbedBuilder newEmbed = new EmbedBuilder();
-        newEmbed.setTitle("__**Available Commands:**__");
-        newEmbed.setColor(Color.CYAN);
-        newEmbed.setFooter("Page " + page + " of " + max, sender.getJDA().getSelfUser().getAvatarUrl());
-        newEmbed.setTimestamp(Instant.now());
+    private Page generatePage(int page, int limit, int maxPages, Stream<LoadedCommand> commands, Member sender) {
+        PageBuilder pageBuilder = new PageBuilder().setEntryLimit(limit).includeTimestamp(true).setColor(Color.CYAN).setTitle("__**Available Commands:**__");
+        pageBuilder.setFooter("Page " + page + " of " + maxPages, sender.getJDA().getSelfUser().getAvatarUrl());
         commands.filter(cmd -> !cmd.isHiddenFromHelp()).forEach(cmd -> {
             StringBuilder aka = new StringBuilder("**");
             String label = cmd.getLabels().get(0);
@@ -103,26 +97,25 @@ public class HelpCommand {
                     aka.setLength(aka.length() - 2);
                 aka.append(")");
             }
+            List<String> lines = new ArrayList<>();
 
-            StringBuilder desc = new StringBuilder();
             if (cmd.getChildren().size() > 0) {
-                desc.append("\u2022\u0020**Children:** ");
+                StringBuilder children = new StringBuilder();
+                children.append("\u2022\u0020**Children:** ");
                 for (LoadedCommand child : cmd.getChildren())
-                    desc.append(child.getLabels().get(0)).append(", ");
+                    children.append(child.getLabels().get(0)).append(", ");
                 if (aka.charAt(aka.length() - 1) == ' ')
                     aka.setLength(aka.length() - 2);
-                desc.append("\n");
+                lines.add(children.toString());
             }
-            if (!cmd.getDescription().equals(""))
-                desc.append("\u2022\u0020**Description:** ").append(cmd.getDescription()).append("\n");
-            if (!cmd.getUsageString().equals(""))
-                desc.append("\u2022\u0020**Usage:** ").append(prefix.apply(sender.getGuild())).append(cmd.getUsageString()).append("\n");
-            desc.append("\u2022\u0020**Permission:** ").append(cmd.getPermission().get(0) == Permission.UNKNOWN ? "None" : cmd.getPermission().get(0).getName()).append("\n"); //todo temporarily first permission
 
-            if (desc.charAt(desc.length() - 1) == '\n')
-                desc.setLength(desc.length() - 1);
-            newEmbed.addField(aka.toString(), desc.toString(), false);
+            if (!cmd.getDescription().equals(""))
+                lines.add("\u2022\u0020**Description:** " + cmd.getDescription());
+            if (!cmd.getUsageString().equals(""))
+                lines.add("\u2022\u0020**Usage:** " + prefix.apply(sender.getGuild()) + cmd.getUsageString());
+            lines.add("\u2022\u0020**Permission:** " + (cmd.getPermission().get(0) == Permission.UNKNOWN ? "None" : cmd.getPermission().get(0).getName())); //todo temporarily first permission
+            pageBuilder.addContent(false, aka.toString(), lines.toArray(new String[0]));
         });
-        return newEmbed.build();
+        return pageBuilder.build();
     }
 }

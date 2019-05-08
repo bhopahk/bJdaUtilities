@@ -23,6 +23,7 @@
  * SOFTWARE.
  */
 
+import me.bhop.bjdautilities.command.CommandHandler;
 import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.annotation.Execute;
 import me.bhop.bjdautilities.command.result.CommandResult;
@@ -53,18 +54,16 @@ public class Testing {
 
     public static void main(String[] args) throws Exception {
         jda = new JDABuilder(AccountType.BOT).setToken(args[0]).build();
-
-//        CommandHandlerSingle handler = new CommandHandlerSingle.Builder(jda)
-//                .setPrefix(">").setConcurrent(true)
-////                .addCustomParameter(new TestObject("I am a test"))
-//                .addResultHandler(CustomResults.CoolResult.class, (result, command, message) -> {
-//                    message.getTextChannel().sendMessage("I am a custom handler w/ value of '" + result.value + "'").complete();
-//                })
-////                .autoRegisterPackage("commands")
-//                .setGenerateHelp(true).build();
+        CommandHandler handler = new CommandHandler.Builder(jda).setGenerateHelp(true).addCustomParameter(new TestObject("I am a test"))
+                .addResultHandler(CustomResults.CoolResult.class, (result, command, message) -> {
+            message.getTextChannel().sendMessage("I am a custom handler w/ value of '" + result.value + "'").complete();
+        }).guildIndependent().setPrefix(">").build();
+        handler.register(new Wahh());
+        handler.register(new Wahh2());
+        handler.register(new Wahh3());
+        handler.register(new Wahh4());
+        System.out.println(handler.getCommandsRecursive().size());
     }
-
-
 
 
     @Command(label = {"wahh", "wagdafgagwagw"}, description = "be the WAHH", usage = "wahh")
