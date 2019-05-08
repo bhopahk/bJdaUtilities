@@ -22,7 +22,6 @@ repositories {
 
 dependencies {
     compile 'net.dv8tion:JDA:3.8.1_447'
-    compile 'org.reflections:reflections:0.9.11'
 }
 
 autoversion {

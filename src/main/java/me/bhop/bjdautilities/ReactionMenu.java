@@ -27,11 +27,14 @@ package me.bhop.bjdautilities;
 
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.MessageEmbed;
-import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.events.message.guild.react.GuildMessageReactionAddEvent;
 import net.dv8tion.jda.core.events.message.guild.react.GuildMessageReactionRemoveEvent;
+import net.dv8tion.jda.core.events.message.priv.react.PrivateMessageReactionAddEvent;
+import net.dv8tion.jda.core.events.message.priv.react.PrivateMessageReactionRemoveEvent;
 import net.dv8tion.jda.core.exceptions.ErrorResponseException;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
 
@@ -45,8 +48,10 @@ import java.util.function.Consumer;
  * A chat menu created from reactions (emotes).
  *
  * This can be used for fetching a user decision given a number of choices, or simply for something like a refreshable and persistent message.
+ *
+ * This class has no functionality, a {@link GuildReactionMenu} or {@link PrivateMessageReactionMenu} should be used instead.
  */
-public class ReactionMenu extends ListenerAdapter {
+public abstract class ReactionMenu extends ListenerAdapter {
     private final JDA jda;
     private EditableMessage message = null;
     private final MessageBuilder unsentMessage;
@@ -54,8 +59,9 @@ public class ReactionMenu extends ListenerAdapter {
     private final List<Consumer<ReactionMenu>> openEvents;
     private final List<Consumer<ReactionMenu>> closeEvents;
     private final Map<String, Consumer<ReactionMenu>> addActions;
-    private final Map<String, BiConsumer<ReactionMenu, Member>> addActions2;
+    private final Map<String, BiConsumer<ReactionMenu, User>> addActions2;
     private final Map<String, Consumer<ReactionMenu>> removeActions;
+    private final Map<String, BiConsumer<ReactionMenu, User>> removeActions2;
     private final boolean removeReactions;
 
     public final Map<String, Object> data = new HashMap<>();
@@ -70,8 +76,9 @@ public class ReactionMenu extends ListenerAdapter {
             List<Consumer<ReactionMenu>> openEvents,
             List<Consumer<ReactionMenu>> closeEvents,
             Map<String, Consumer<ReactionMenu>> addActions,
-            Map<String, BiConsumer<ReactionMenu, Member>> addActions2,
+            Map<String, BiConsumer<ReactionMenu, User>> addActions2,
             Map<String, Consumer<ReactionMenu>> removeActions,
+            Map<String, BiConsumer<ReactionMenu, User>> removeActions2,
             boolean removeReactions
     ) {
         this.jda = jda;
@@ -82,39 +89,36 @@ public class ReactionMenu extends ListenerAdapter {
         this.addActions = addActions;
         this.addActions2 = addActions2;
         this.removeActions = removeActions;
+        this.removeActions2 = removeActions2;
 
         this.removeReactions = removeReactions;
     }
 
-    // Events
-    @Override
-    @SuppressWarnings("Duplicates")
-    public void onGuildMessageReactionAdd(GuildMessageReactionAddEvent event) {
-        if (message == null || message.getId() != event.getMessageIdLong() || event.getUser().isBot())
-            return;
-        String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
-        Consumer<ReactionMenu> action = addActions.get(id);
-        if (action != null)
-            action.accept(this);
+    /**
+     * It is highly recommended to use a {@link Builder}.
+     */
+    private ReactionMenu(
+            JDA jda,
+            Message message,
+            List<Consumer<ReactionMenu>> closeEvents,
+            Map<String, Consumer<ReactionMenu>> addActions,
+            Map<String, BiConsumer<ReactionMenu, User>> addActions2,
+            Map<String, Consumer<ReactionMenu>> removeActions,
+            Map<String, BiConsumer<ReactionMenu, User>> removeActions2,
+            boolean removeReactions
+    ) {
+        this.jda = jda;
+        this.message = EditableMessage.wrap(message);
+        this.unsentMessage = null;
+        this.startingReactions = new ArrayList<>();
+        this.openEvents = new ArrayList<>();
+        this.closeEvents = closeEvents;
+        this.addActions = addActions;
+        this.addActions2 = addActions2;
+        this.removeActions = removeActions;
+        this.removeActions2 = removeActions2;
 
-        BiConsumer<ReactionMenu, Member> action2 = addActions2.get(id);
-        if (action2 != null)
-            action2.accept(this, event.getMember());
-
-        try {
-            if (removeReactions)
-                event.getReaction().removeReaction(event.getUser()).complete();
-        } catch (ErrorResponseException ignored) { }
-    }
-
-    @Override
-    @SuppressWarnings("Duplicates")
-    public void onGuildMessageReactionRemove(GuildMessageReactionRemoveEvent event) {
-        if (message == null || message.getId() != event.getMessageIdLong() || event.getUser().isBot())
-            return;
-        Consumer<ReactionMenu> action = removeActions.get(event.getReaction().getReactionEmote().getName());
-        if (action != null)
-            action.accept(this);
+        this.removeReactions = removeReactions;
     }
 
     /**
@@ -123,15 +127,15 @@ public class ReactionMenu extends ListenerAdapter {
      * @param channel the channel to create the menu in
      * @throws IllegalStateException if the menu has already been displayed
      */
-    public void display(TextChannel channel) {
+    public void display(MessageChannel channel) {
         if (message != null)
             throw new IllegalStateException("This menu has already been displayed!");
-        message = new EditableMessage(channel.sendMessage(unsentMessage.build()).complete());
+        message = EditableMessage.wrap(channel.sendMessage(unsentMessage.build()).complete());
         for (String emoteId : startingReactions) {
             if (emoteId.charAt(0) > 128)
-                message.getMessage().addReaction(emoteId).queue();
+                message.addReaction(emoteId).queue();
             else
-                message.getMessage().addReaction(channel.getGuild().getEmotesByName(emoteId, true).get(0)).queue();
+                message.addReaction(message.getGuild().getEmotesByName(emoteId, true).get(0)).queue();
 
         }
         openEvents.forEach(action -> action.accept(this));
@@ -155,7 +159,7 @@ public class ReactionMenu extends ListenerAdapter {
                 return;
             message.cancelUpdater();
             closeEvents.forEach(action -> action.accept(this));
-            message.getMessage().delete().complete();
+            message.delete().complete();
             message = null;
         }, seconds, TimeUnit.SECONDS);
     }
@@ -169,9 +173,9 @@ public class ReactionMenu extends ListenerAdapter {
      */
     public void addReaction(String emoteId) {
         if (emoteId.charAt(0) > 128)
-            message.getMessage().addReaction(emoteId).queue();
+            message.addReaction(emoteId).queue();
         else
-            message.getMessage().addReaction(message.getMessage().getGuild().getEmotesByName(emoteId, true).get(0)).queue();
+            message.addReaction(message.getGuild().getEmotesByName(emoteId, true).get(0)).queue();
     }
 
     /**
@@ -181,8 +185,15 @@ public class ReactionMenu extends ListenerAdapter {
      */
     public void removeReaction(String name) {
         message.refreshMessage(jda);
-        message.getMessage().getReactions().stream().filter(reaction -> reaction.getReactionEmote().getName().equals(name)).forEach(reaction -> {
+        message.getReactions().stream().filter(reaction -> reaction.getReactionEmote().getName().equals(name)).forEach(reaction -> {
             reaction.removeReaction().queue(); //todo may not work with custom emotes
+        });
+    }
+
+    public void removeReaction(String name, User userId) {
+        message.refreshMessage(jda);
+        message.getReactions().stream().filter(reaction -> reaction.getReactionEmote().getName().equals(name)).forEach(reaction -> {
+            reaction.removeReaction(userId).queue(); //todo may not work with custom emotes
         });
     }
 
@@ -203,6 +214,94 @@ public class ReactionMenu extends ListenerAdapter {
         return message;
     }
 
+    public static class GuildReactionMenu extends ReactionMenu {
+        private GuildReactionMenu(JDA jda, MessageBuilder unsentMessage, List<String> startingReactions, List<Consumer<ReactionMenu>> openEvents, List<Consumer<ReactionMenu>> closeEvents, Map<String, Consumer<ReactionMenu>> addActions, Map<String, BiConsumer<ReactionMenu, User>> addActions2, Map<String, Consumer<ReactionMenu>> removeActions, Map<String, BiConsumer<ReactionMenu, User>> removeActions2, boolean removeReactions) {
+            super(jda, unsentMessage, startingReactions, openEvents, closeEvents, addActions, addActions2, removeActions, removeActions2, removeReactions);
+        }
+
+        private GuildReactionMenu(JDA jda, Message message, List<Consumer<ReactionMenu>> closeEvents, Map<String, Consumer<ReactionMenu>> addActions, Map<String, BiConsumer<ReactionMenu, User>> addActions2, Map<String, Consumer<ReactionMenu>> removeActions, Map<String, BiConsumer<ReactionMenu, User>> removeActions2, boolean removeReactions) {
+            super(jda, message, closeEvents, addActions, addActions2, removeActions, removeActions2, removeReactions);
+        }
+
+        @Override
+        @SuppressWarnings("Duplicates")
+        public void onGuildMessageReactionAdd(GuildMessageReactionAddEvent event) {
+            if (super.message == null || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
+                return;
+            String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
+            Consumer<ReactionMenu> action = super.addActions.get(id);
+            if (action != null)
+                action.accept(this);
+
+            BiConsumer<ReactionMenu, User> action2 = super.addActions2.get(id);
+            if (action2 != null)
+                action2.accept(this, event.getUser());
+
+            try {
+                if (super.removeReactions)
+                    event.getReaction().removeReaction(event.getUser()).complete();
+            } catch (ErrorResponseException ignored) { }
+        }
+
+        @Override
+        @SuppressWarnings("Duplicates")
+        public void onGuildMessageReactionRemove(GuildMessageReactionRemoveEvent event) {
+            if (super.message == null || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
+                return;
+            Consumer<ReactionMenu> action = super.removeActions.get(event.getReaction().getReactionEmote().getName());
+            if (action != null)
+                action.accept(this);
+            BiConsumer<ReactionMenu, User> action2 = super.removeActions2.get(event.getReaction().getReactionEmote().getName());
+            if (action2 != null)
+                action2.accept(this, event.getUser());
+        }
+    }
+
+    public static class PrivateMessageReactionMenu extends ReactionMenu {
+
+        private PrivateMessageReactionMenu(JDA jda, MessageBuilder unsentMessage, List<String> startingReactions, List<Consumer<ReactionMenu>> openEvents, List<Consumer<ReactionMenu>> closeEvents, Map<String, Consumer<ReactionMenu>> addActions, Map<String, BiConsumer<ReactionMenu, User>> addActions2, Map<String, Consumer<ReactionMenu>> removeActions, Map<String, BiConsumer<ReactionMenu, User>> removeActions2, boolean removeReactions) {
+            super(jda, unsentMessage, startingReactions, openEvents, closeEvents, addActions, addActions2, removeActions, removeActions2, removeReactions);
+        }
+
+        private PrivateMessageReactionMenu(JDA jda, Message message, List<Consumer<ReactionMenu>> closeEvents, Map<String, Consumer<ReactionMenu>> addActions, Map<String, BiConsumer<ReactionMenu, User>> addActions2, Map<String, Consumer<ReactionMenu>> removeActions, Map<String, BiConsumer<ReactionMenu, User>> removeActions2, boolean removeReactions) {
+            super(jda, message, closeEvents, addActions, addActions2, removeActions, removeActions2, removeReactions);
+        }
+
+        @Override
+        @SuppressWarnings("Duplicates")
+        public void onPrivateMessageReactionAdd(PrivateMessageReactionAddEvent event) {
+            if (super.message == null || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
+                return;
+            String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
+            Consumer<ReactionMenu> action = super.addActions.get(id);
+            if (action != null)
+                action.accept(this);
+
+            BiConsumer<ReactionMenu, User> action2 = super.addActions2.get(id);
+            if (action2 != null)
+                action2.accept(this, event.getUser());
+        }
+
+        @Override
+        @SuppressWarnings("Duplicates")
+        public void onPrivateMessageReactionRemove(PrivateMessageReactionRemoveEvent event) {
+            if (super.message == null || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
+                return;
+            Consumer<ReactionMenu> action = super.removeActions.get(event.getReaction().getReactionEmote().getName());
+            if (action != null)
+                action.accept(this);
+            BiConsumer<ReactionMenu, User> action2 = super.removeActions2.get(event.getReaction().getReactionEmote().getName());
+            if (action2 != null)
+                action2.accept(this, event.getUser());
+        }
+
+        @Override
+        public void removeReaction(String name) { }
+
+        @Override
+        public void removeReaction(String name, User userId) { }
+    }
+
     /**
      * A convenient builder for creating {@link ReactionMenu}s.
      */
@@ -213,8 +312,9 @@ public class ReactionMenu extends ListenerAdapter {
         private final List<Consumer<ReactionMenu>> openEvents = new ArrayList<>();
         private final List<Consumer<ReactionMenu>> closeEvents = new ArrayList<>();
         private final Map<String, Consumer<ReactionMenu>> addActions = new HashMap<>();
-        private final Map<String, BiConsumer<ReactionMenu, Member>> addActions2 = new HashMap<>();
+        private final Map<String, BiConsumer<ReactionMenu, User>> addActions2 = new HashMap<>();
         private final Map<String, Consumer<ReactionMenu>> removeActions = new HashMap<>();
+        private final Map<String, BiConsumer<ReactionMenu, User>> removeActions2 = new HashMap<>();
         private boolean removeReactions = true;
 
         /**
@@ -312,14 +412,14 @@ public class ReactionMenu extends ListenerAdapter {
         }
 
         /**
-         * Add a click listener for an emote. This listener, however, supplies both the menu and the {@link Member} who added the reaction.
+         * Add a click listener for an emote. This listener, however, supplies both the menu and the {@link User} who added the reaction.
          *
          * This will automatically add the emote to the starting emote list.
          *
          * @param name the emote name
          * @param action the action to be called when the emote is clicked
          */
-        public Builder onClick(String name, BiConsumer<ReactionMenu, Member> action) {
+        public Builder onClick(String name, BiConsumer<ReactionMenu, User> action) {
             startingReactions.add(name);
             addActions2.put(name, action);
             return this;
@@ -333,6 +433,17 @@ public class ReactionMenu extends ListenerAdapter {
          */
         public Builder onRemove(String name, Consumer<ReactionMenu> action) {
             addActions.put(name, action);
+            return this;
+        }
+
+        /**
+         * Add a remove listener for an emote. This listener, however, supplies both the menu and the {@link User} who added the reaction.
+         *
+         * @param name the emote name
+         * @param action the action to be called when the emote is removed
+         */
+        public Builder onRemove(String name, BiConsumer<ReactionMenu, User> action) {
+            removeActions2.put(name, action);
             return this;
         }
 
@@ -352,7 +463,7 @@ public class ReactionMenu extends ListenerAdapter {
          * @return the compiled menu
          */
         public ReactionMenu build() {
-            ReactionMenu menu = new ReactionMenu(jda, message, startingReactions, openEvents, closeEvents, addActions, addActions2, removeActions, removeReactions);
+            ReactionMenu menu = new GuildReactionMenu(jda, message, startingReactions, openEvents, closeEvents, addActions, addActions2, removeActions, removeActions2, removeReactions);
             jda.addEventListener(menu);
             return menu;
         }
@@ -363,9 +474,146 @@ public class ReactionMenu extends ListenerAdapter {
          * @param channel the channel to display in
          * @return the compiled menu
          */
-        public ReactionMenu buildAndDisplay(TextChannel channel) {
+        public ReactionMenu buildAndDisplay(MessageChannel channel) {
             ReactionMenu menu = build();
             menu.display(channel);
+            return menu;
+        }
+
+        /**
+         * Build the {@link ReactionMenu} to be displayed at a later point.
+         *
+         * @return the compiled menu
+         */
+        public ReactionMenu buildForPrivateMessage() {
+            ReactionMenu menu = new PrivateMessageReactionMenu(jda, message, startingReactions, openEvents, closeEvents, addActions, addActions2, removeActions, removeActions2, removeReactions);
+            jda.addEventListener(menu);
+            return menu;
+        }
+
+        /**
+         * Build the {@link ReactionMenu} and display it immediately
+         *
+         * @param channel the channel to display in
+         * @return the compiled menu
+         */
+        public ReactionMenu buildAndDisplayForPrivateMessage(MessageChannel channel) {
+            ReactionMenu menu = buildForPrivateMessage();
+            menu.display(channel);
+            return menu;
+        }
+    }
+
+    /**
+     * A convenient way to import a {@link ReactionMenu} after a bot restart.
+     */
+    public static class Import {
+        private final JDA jda;
+        private final Message message;
+        private final List<Consumer<ReactionMenu>> closeEvents = new ArrayList<>();
+        private final Map<String, Consumer<ReactionMenu>> addActions = new HashMap<>();
+        private final Map<String, BiConsumer<ReactionMenu, User>> addActions2 = new HashMap<>();
+        private final Map<String, Consumer<ReactionMenu>> removeActions = new HashMap<>();
+        private final Map<String, BiConsumer<ReactionMenu, User>> removeActions2 = new HashMap<>();
+        private boolean removeReactions = true;
+
+        /**
+         * Create a new builder instance.
+         *
+         * @param message The sent {@link Message} to import
+         */
+        public Import(Message message) {
+            this.jda = message.getJDA();
+            this.message = message;
+        }
+
+        /**
+         * Add a listener for when the menu is destroyed.
+         *
+         * @param action the action to be called on delete
+         */
+        public Import onDestroy(Consumer<ReactionMenu> action) {
+            closeEvents.add(action);
+            return this;
+        }
+
+        /**
+         * Add a click listener for an emote.
+         *
+         * This will automatically add the emote to the starting emote list.
+         *
+         * @param name the emote name
+         * @param action the action to be called when the emote is clicked
+         */
+        public Import onClick(String name, Consumer<ReactionMenu> action) {
+            addActions.put(name, action);
+            return this;
+        }
+
+        /**
+         * Add a click listener for an emote. This listener, however, supplies both the menu and the {@link User} who added the reaction.
+         *
+         * This will automatically add the emote to the starting emote list.
+         *
+         * @param name the emote name
+         * @param action the action to be called when the emote is clicked
+         */
+        public Import onClick(String name, BiConsumer<ReactionMenu, User> action) {
+            addActions2.put(name, action);
+            return this;
+        }
+
+        /**
+         * Add a remove listener for an emote.
+         *
+         * @param name the emote name
+         * @param action the action to be called when the emote is removed
+         */
+        public Import onRemove(String name, Consumer<ReactionMenu> action) {
+            addActions.put(name, action);
+            return this;
+        }
+
+        /**
+         * Add a remove listener for an emote. This listener, however, supplies both the menu and the {@link User} who added the reaction.
+         *
+         * @param name the emote name
+         * @param action the action to be called when the emote is removed
+         */
+        public Import onRemove(String name, BiConsumer<ReactionMenu, User> action) {
+            removeActions2.put(name, action);
+            return this;
+        }
+
+        /**
+         * Set whether or not reactions should be automatically removed when they are added by non-bot users.
+         *
+         * @param removeReactions whether to remove new reactions
+         */
+        public Import setRemoveReactions(boolean removeReactions) {
+            this.removeReactions = removeReactions;
+            return this;
+        }
+
+        /**
+         * Build the {@link ReactionMenu}.
+         *
+         * @return the compiled menu
+         */
+        public ReactionMenu build() {
+            ReactionMenu menu = new GuildReactionMenu(jda, message, closeEvents, addActions, addActions2, removeActions, removeActions2, removeReactions);
+            jda.addEventListener(menu);
+            return menu;
+        }
+
+        /**
+         * Build the {@link ReactionMenu}.
+         *
+         * @return the compiled menu
+         */
+        public ReactionMenu buildForPrivateMessage() {
+            ReactionMenu menu = new PrivateMessageReactionMenu(jda, message, closeEvents, addActions, addActions2, removeActions, removeActions2, removeReactions);
+            jda.addEventListener(menu);
             return menu;
         }
     }

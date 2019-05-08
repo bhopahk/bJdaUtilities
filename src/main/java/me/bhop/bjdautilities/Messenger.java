@@ -27,8 +27,8 @@ package me.bhop.bjdautilities;
 
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.MessageEmbed;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -58,99 +58,100 @@ public class Messenger {
     }
 
     /**
-     * Send a {@link Message} to a {@link TextChannel} and forget about it.
+     * Send a {@link Message} to a {@link MessageChannel} and forget about it.
      *
      * @param channel the target channel
      * @param message the message content
      * @return the sent message
      */
-    public EditableMessage sendMessage(TextChannel channel, String message) {
+    public EditableMessage sendMessage(MessageChannel channel, String message) {
         return sendMessage(channel, message, -1);
     }
 
     /**
-     * Send a {@link MessageEmbed} to a {@link TextChannel} and forget about it.
+     * Send a {@link MessageEmbed} to a {@link MessageChannel} and forget about it.
      *
      * @param channel the target channel
      * @param embed the message content
      * @return the sent message
      */
-    public EditableMessage sendEmbed(TextChannel channel, MessageEmbed embed) {
+    public EditableMessage sendEmbed(MessageChannel channel, MessageEmbed embed) {
         return sendEmbed(channel, embed, -1);
     }
 
     /**
-     * Send a {@link Message} to a {@link TextChannel} which will stay for the supplied number of seconds.
+     * Send a {@link Message} to a {@link MessageChannel} which will stay for the supplied number of seconds.
      *
      * @param channel the target channel
      * @param message the message content
      * @param lifetime the amount of time before deletion, in seconds
      * @return the sent message
      */
-    public EditableMessage sendMessage(TextChannel channel, String message, int lifetime) {
+    public EditableMessage sendMessage(MessageChannel channel, String message, int lifetime) {
         return sendMessage(channel, new MessageBuilder().append(message).build(), lifetime);
     }
 
     /**
-     * Send a {@link MessageEmbed} to a {@link TextChannel} which will stay for the supplied number of seconds.
+     * Send a {@link MessageEmbed} to a {@link MessageChannel} which will stay for the supplied number of seconds.
      *
      * @param channel the target channel
      * @param embed the message content
      * @param lifetime the amount of time before deletion, in seconds
      * @return the sent message
      */
-    public EditableMessage sendEmbed(TextChannel channel, MessageEmbed embed, int lifetime) {
+    public EditableMessage sendEmbed(MessageChannel channel, MessageEmbed embed, int lifetime) {
         return sendMessage(channel, new MessageBuilder().setEmbed(embed).build(), lifetime);
     }
 
     /**
-     * Send a {@link Message} to a {@link TextChannel} which will stay for the supplied number of seconds with a callback upon deletion.
+     * Send a {@link Message} to a {@link MessageChannel} which will stay for the supplied number of seconds with a callback upon deletion.
      *
      * @param channel the target channel
      * @param message the message content
      * @param lifetime the amount of time before deletion, in seconds
      * @param onRemove the deletion callback
      */
-    public void sendMessage(TextChannel channel, String message, int lifetime, Consumer<TextChannel> onRemove) {
+    public void sendMessage(MessageChannel channel, String message, int lifetime, Consumer<MessageChannel> onRemove) {
         sendMessage(channel, new MessageBuilder().append(message).build(), lifetime, onRemove);
     }
 
     /**
-     * Send a {@link MessageEmbed} to a {@link TextChannel} which will stay for the supplied number of seconds with a callback upon deletion.
+     * Send a {@link MessageEmbed} to a {@link MessageChannel} which will stay for the supplied number of seconds with a callback upon deletion.
      *
      * @param channel the target channel
      * @param embed the message content
      * @param lifetime the amount of time before deletion, in seconds
      * @param onRemove the deletion callback
      */
-    public void sendEmbed(TextChannel channel, MessageEmbed embed, int lifetime, Consumer<TextChannel> onRemove) {
+    public void sendEmbed(MessageChannel channel, MessageEmbed embed, int lifetime, Consumer<MessageChannel> onRemove) {
         sendMessage(channel, new MessageBuilder().setEmbed(embed).build(), lifetime, onRemove);
     }
 
     /**
-     * Send a compiled {@link Message} to a {@link TextChannel} which will be removed after the supplied number of seconds.
+     * Send a compiled {@link Message} to a {@link MessageChannel} which will be removed after the supplied number of seconds.
      *
      * @param channel the target channel
      * @param message the message
      * @param lifetime the amount of time before deletion, in seconds
      * @return the sent message
      */
-    public EditableMessage sendMessage(TextChannel channel, Message message, int lifetime) {
+    public EditableMessage sendMessage(MessageChannel channel, Message message, int lifetime) {
         Message sent = channel.sendMessage(message).complete();
         if (lifetime != -1)
             murderer.schedule(() -> sent.delete().queue(), lifetime, TimeUnit.SECONDS);
-        return new EditableMessage(sent);
+        return EditableMessage.wrap(sent);
     }
 
     /**
-     * Send a compiled {@link Message} to a {@link TextChannel} which will be removed after the supplied number of seconds with a callback upon deletion.
+     * Send a compiled {@link Message} to a {@link MessageChannel} which will be removed after the supplied number of seconds with a callback upon deletion.
      *
      * @param channel the target channel
      * @param message the message
      * @param lifetime the amount of time before deletion, in seconds
      * @param onRemove the deletion callback
      */
-    public void sendMessage(TextChannel channel, Message message, int lifetime, Consumer<TextChannel> onRemove) {
+    public void sendMessage(MessageChannel channel, Message message, int lifetime, Consumer<MessageChannel> onRemove) {
+        channel.sendTyping().queue();
         channel.sendMessage(message).queue(m -> {
             if (lifetime != -1)
                 murderer.schedule(() -> m.delete().queue($ -> {
@@ -158,5 +159,25 @@ public class Messenger {
                         onRemove.accept(channel);
                 }), lifetime, TimeUnit.SECONDS);
         });
+    }
+
+    // Deletions
+    public void delete(MessageChannel channel, Long id) {
+        delete(channel, id, -1);
+    }
+
+    public void delete(MessageChannel channel, Long id, int time) {
+        delete(channel.getMessageById(id).complete(), time);
+    }
+
+    public void delete(Message message) {
+        delete(message, -1);
+    }
+
+    public void delete(Message message, int time) {
+        if (time == -1)
+            message.delete().complete();
+        else
+            message.delete().queueAfter(time, TimeUnit.SECONDS);
     }
 }

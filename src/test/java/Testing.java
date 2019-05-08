@@ -23,7 +23,6 @@
  * SOFTWARE.
  */
 
-import me.bhop.bjdautilities.command.CommandHandler;
 import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.annotation.Execute;
 import me.bhop.bjdautilities.command.result.CommandResult;
@@ -55,14 +54,14 @@ public class Testing {
     public static void main(String[] args) throws Exception {
         jda = new JDABuilder(AccountType.BOT).setToken(args[0]).build();
 
-        CommandHandler handler = new CommandHandler.Builder(jda)
-                .setPrefix(">").setConcurrent(true)
-//                .addCustomParameter(new TestObject("I am a test"))
-                .addResultHandler(CustomResults.CoolResult.class, (result, command, message) -> {
-                    message.getTextChannel().sendMessage("I am a custom handler w/ value of '" + result.value + "'").complete();
-                })
-                .autoRegisterPackage("commands")
-                .setGenerateHelp(true).build();
+//        CommandHandlerSingle handler = new CommandHandlerSingle.Builder(jda)
+//                .setPrefix(">").setConcurrent(true)
+////                .addCustomParameter(new TestObject("I am a test"))
+//                .addResultHandler(CustomResults.CoolResult.class, (result, command, message) -> {
+//                    message.getTextChannel().sendMessage("I am a custom handler w/ value of '" + result.value + "'").complete();
+//                })
+////                .autoRegisterPackage("commands")
+//                .setGenerateHelp(true).build();
     }
 
 

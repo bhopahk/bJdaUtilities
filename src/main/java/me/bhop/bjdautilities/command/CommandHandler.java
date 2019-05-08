@@ -1,129 +1,77 @@
-/*
- * This file is part of bJdaUtilities, licensed under the MIT License.
- *
- * Copyright (c) 2019 bhop_ (Matt Worzala)
- * Copyright (c) 2019 contributors
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
 package me.bhop.bjdautilities.command;
 
-import me.bhop.bjdautilities.command.annotation.Command;
+import me.bhop.bjdautilities.Messenger;
+import me.bhop.bjdautilities.command.handler.GuildDependentCommandHandler;
+import me.bhop.bjdautilities.command.handler.GuildIndependentCommandHandler;
 import me.bhop.bjdautilities.command.provided.HelpCommand;
 import me.bhop.bjdautilities.command.response.CommandResponses;
 import me.bhop.bjdautilities.command.response.DefaultCommandResponses;
 import me.bhop.bjdautilities.command.result.CommandResult;
+import me.bhop.bjdautilities.util.ThrowingRunnable;
 import me.bhop.bjdautilities.util.TriConsumer;
 import net.dv8tion.jda.core.JDA;
+import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
-import org.reflections.Reflections;
-import org.reflections.scanners.TypeAnnotationsScanner;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
- * A command parser
+ * The base for both the {@link GuildDependentCommandHandler} and {@link GuildIndependentCommandHandler}.
  */
-public class CommandHandler extends ListenerAdapter {
-    private final ScheduledExecutorService messageMurderer = Executors.newScheduledThreadPool(2);
-    private final ExecutorService executor;
+public abstract class CommandHandler extends ListenerAdapter {
+    private static final Messenger messenger = new Messenger();
+    private static final ExecutorService commandExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-    private final String prefix;
+    private final boolean concurrent;
     private final CommandResponses responses;
-    private final Set<LoadedCommand> commands = new HashSet<>();
+    private final Set<LoadedCommand> commands;
     private final List<Object> params;
     private final Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results;
-    private final List<String> autoRegisters;
-
-    private final boolean deleteCommands;
-    private final int deleteCommandLength;
-    private final boolean deleteResponse;
-    private final int deleteResponseLength;
-
-    private final boolean sendTyping;
 
     /**
-     * Create a new command handler with default settings.
-     *
-     * @param jda the {@link JDA} instance
+     * Use the {@link Builder}.
      */
-    public CommandHandler(JDA jda) {
-        this(jda, "!", new DefaultCommandResponses(), new ArrayList<>(), new HashMap<>(), new ArrayList<>(), true, 2, true, 10, true, 20, false, 5, true);
-    }
-
-    /**
-     * Create a command handler with custom settings. Using the {@link Builder} is heavily recommended.
-     */
-    private CommandHandler(JDA jda, String prefix, CommandResponses responses, List<Object> customParams, Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results, List<String> autoRegisters, boolean concurrent, int threadPoolSize, boolean deleteCommands, int deleteCommandLength, boolean deleteResponse, int deleteResponseLength, boolean help, int entriesPerPage, boolean sendTyping) {
-        this.prefix = prefix;
+    protected CommandHandler(JDA jda, boolean concurrent, CommandResponses responses, Set<LoadedCommand> commands, List<Object> params, Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results, boolean help, int entriesPerPage, boolean helpPermissions) {
+        this.concurrent = concurrent;
         this.responses = responses;
-
-        params = customParams;
+        this.commands = commands;
+        this.params = params;
         this.results = results;
-        this.autoRegisters = autoRegisters;
-
-        executor = concurrent ? Executors.newFixedThreadPool(threadPoolSize) : null;
-
-        this.deleteCommands = deleteCommands;
-        this.deleteCommandLength = deleteCommandLength;
-        this.deleteResponse = deleteResponse;
-        this.deleteResponseLength = deleteResponseLength;
 
         if (help)
-            commands.add(LoadedCommand.create(new HelpCommand(entriesPerPage, prefix), Collections.singletonList((Supplier<Set<LoadedCommand>>) this::getAllRecursive)));
-
-        this.sendTyping = sendTyping;
+            commands.add(LoadedCommand.create(new HelpCommand(entriesPerPage, this::getPrefix, helpPermissions), Collections.singletonList((Supplier<Set<LoadedCommand>>) this::getCommandsRecursive)));
 
         jda.addEventListener(this);
-
-        autoRegister();
     }
 
-    // Events
     @Override
     public void onGuildMessageReceived(final GuildMessageReceivedEvent event) {
+        Guild guild = event.getGuild();
         Message message = event.getMessage();
         Member member = event.getMember();
         TextChannel channel = event.getChannel();
 
+        int responseLifetime = (int) getResponseLifespan(guild);
+
         if (event.getAuthor().isBot())
             return;
+        String prefix = getPrefix(guild);
         if (!event.getMessage().getContentRaw().startsWith(prefix) || event.getMessage().getContentRaw().length() <= prefix.length())
             return;
 
-        if (deleteCommands && deleteCommandLength > 0)
-            messageMurderer.schedule(() -> event.getMessage().delete().queue(), deleteCommandLength, TimeUnit.SECONDS);
+        messenger.delete(event.getMessage(), (int) getCommandLifespan(guild));
 
         ThrowingRunnable run = new ThrowingRunnable(() -> {
             List<String> args = new ArrayList<>(Arrays.asList(event.getMessage().getContentRaw().split(" ")));
             if (args.isEmpty() || (args.size() == 1 && args.get(0).trim().isEmpty())) {
-                sendMessage(channel, responses.unknownCommand(message, prefix));
+                messenger.sendMessage(channel, responses.unknownCommand(message, prefix), responseLifetime);
                 return;
             }
 
@@ -134,37 +82,40 @@ public class CommandHandler extends ListenerAdapter {
                     .filter(cmd -> cmd.getLabels().contains(label.toLowerCase()))
                     .findFirst();
             if (!opt.isPresent()) {
-                sendMessage(channel, responses.unknownCommand(message, prefix));
+                messenger.sendMessage(channel, responses.unknownCommand(message, prefix), responseLifetime);
                 return;
             }
 
             LoadedCommand cmd = opt.get();
             if (!member.hasPermission(cmd.getPermission())) {
-                sendMessage(channel, responses.noPerms(message, cmd.getPermission()));
+                messenger.sendMessage(channel, responses.noPerms(message, cmd.getPermission()), responseLifetime);
                 return;
             }
 
             if (cmd.getMinArgs() > args.size()) {
-                sendMessage(channel, responses.notEnoughArguments(message, cmd.getMinArgs(), args));
+                messenger.sendMessage(channel, responses.notEnoughArguments(message, cmd.getMinArgs(), args), responseLifetime);
                 return;
             }
 
             CommandResult result = cmd.execute(member, channel, message, label, args);
             if (result instanceof CommandResult.NoPermission)
-                sendMessage(channel, responses.noPerms(message, cmd.getPermission()));
+                messenger.sendMessage(channel, responses.noPerms(message, cmd.getPermission()), responseLifetime);
             else if (result instanceof CommandResult.InvalidArguments) {
                 if (cmd.hasUsage())
                     cmd.usage(member, channel, message, label, args);
-                else sendMessage(channel, responses.usage(message, args, cmd.getUsageString()));
+                else messenger.sendMessage(channel, responses.usage(message, args, cmd.getUsageString()), responseLifetime);
             } else if (!(result instanceof CommandResult.Success))
                 Optional.ofNullable(results.get(result.getClass())).ifPresent(r -> r.accept(result, cmd, message));
         });
 
-        if (executor == null)
-            run.run();
-        else
-            executor.submit(run);
+        if (concurrent)
+            commandExecutor.submit(run);
+        else run.run();
     }
+
+    protected abstract String getPrefix(Guild guild);
+    protected abstract long getCommandLifespan(Guild guild);
+    protected abstract long getResponseLifespan(Guild guild);
 
     /**
      * Register a new command given its class.
@@ -188,10 +139,10 @@ public class CommandHandler extends ListenerAdapter {
      */
     public void register(Object command) {
         LoadedCommand cmd = LoadedCommand.create(command, params);
-        cmd.sendMessage = this::sendMessage;
+        cmd.sendMessage = (channel, message) -> messenger.sendMessage(channel, message, (int) getResponseLifespan(channel.getGuild()));
         cmd.responses = this.responses;
         boolean foundParent = false;
-        for (LoadedCommand all : getAllRecursive())
+        for (LoadedCommand all : getCommandsRecursive())
             if (all.hasChild(cmd.getCommandClass()))
                 foundParent = all.registerChild(cmd);
 
@@ -200,7 +151,7 @@ public class CommandHandler extends ListenerAdapter {
 
         Set<LoadedCommand> removals = new HashSet<>();
         for (LoadedCommand c : commands) {
-            for (LoadedCommand all : getAllRecursive()) {
+            for (LoadedCommand all : getCommandsRecursive()) {
                 if (all.getChildClasses().contains(c.getCommandClass())) {
                     all.registerChild(c);
                     removals.add(c);
@@ -218,7 +169,7 @@ public class CommandHandler extends ListenerAdapter {
      * @return the {@link LoadedCommand}, if it exists
      */
     public Optional<LoadedCommand> getCommand(Class<?> clazz) {
-        return getAllRecursive().stream().filter(cmd -> cmd.getCommandClass().equals(clazz)).findFirst();
+        return getCommandsRecursive().stream().filter(cmd -> cmd.getCommandClass().equals(clazz)).findFirst();
     }
 
     /**
@@ -226,59 +177,28 @@ public class CommandHandler extends ListenerAdapter {
      *
      * @return all registered commands and their children
      */
-    public Set<LoadedCommand> getAllRecursive() {
+    public Set<LoadedCommand> getCommandsRecursive() {
         Set<LoadedCommand> all = new HashSet<>();
         for (LoadedCommand cmd : commands)
             all.addAll(cmd.getAllRecursive());
         return all;
     }
 
-    private void sendMessage(TextChannel channel, Message message) {
-        if (sendTyping)
-            channel.sendTyping().complete();
-        channel.sendMessage(message).queue(m -> {
-            if (deleteResponse && deleteResponseLength > 0)
-                messageMurderer.schedule(() -> m.delete().queue(), deleteResponseLength, TimeUnit.SECONDS);
-        });
-    }
-
-    private void autoRegister() {
-        autoRegisters.stream().map(pkg -> new Reflections(pkg, new TypeAnnotationsScanner()).getTypesAnnotatedWith(Command.class, true))
-                .flatMap(Set::stream).forEach(this::register);
-    }
-
-    // ------------------------------ Builder ------------------------------
-
-    /**
-     * A convenient builder for creating a {@link CommandHandler} instance.
-     */
     public static class Builder {
         private final JDA jda;
-        private String prefix = "!";
         private CommandResponses responses = new DefaultCommandResponses();
 
         // Custom Parameters
         private final List<Object> customParams = new ArrayList<>();
         // Result Handlers
         private final Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results = new HashMap<>();
-        // Auto Register Packages
-        private final List<String> autoRegisters = new ArrayList<>();
 
         // Concurrent Execution
         private boolean concurrent = true;
-        private int threadPoolSize = 2;
 
-        // Deletions
-        private boolean deleteCommands = true;
-        private int deleteCommandLength = 10;
-        private boolean deleteResponse = true;
-        private int deleteResponseLength = 20;
-
-        // Auto Generated Help
-        private boolean help = false;
-        private int entriesPerHelpPage = 5;
-        // Send typing before a response
-        private boolean sendTyping = true;
+        private boolean help = true;
+        private int entriesPerPage = 5;
+        private boolean helpPermissions = false;
 
         /**
          * Create a new builder instance.
@@ -287,16 +207,6 @@ public class CommandHandler extends ListenerAdapter {
          */
         public Builder(JDA jda) {
             this.jda = jda;
-        }
-
-        /**
-         * Set the command prefix.
-         *
-         * @param prefix the prefix
-         */
-        public Builder setPrefix(String prefix) {
-            this.prefix = prefix;
-            return this;
         }
 
         /**
@@ -353,63 +263,6 @@ public class CommandHandler extends ListenerAdapter {
         }
 
         /**
-         * Set the number of threads to pool for command executions.
-         *
-         * This is ignored if concurrent is false.
-         *
-         * @param nThreads the number of threads
-         */
-        public Builder setThreadPoolCount(int nThreads) {
-            this.threadPoolSize = nThreads;
-            return this;
-        }
-
-        /**
-         * Set whether or not to delete the user's command (the message containing
-         * the command) automatically.
-         *
-         * @param delete whether to delete commands automatically
-         */
-        public Builder setDeleteCommands(boolean delete) {
-            this.deleteCommands = delete;
-            return this;
-        }
-
-        /**
-         * Set the time before command messages are deleted.
-         *
-         * This is ignored if deleteCommands is false.
-         *
-         * @param seconds the time before deletion, in seconds
-         */
-        public Builder setDeleteCommandTime(int seconds) {
-            this.deleteCommandLength = seconds;
-            return this;
-        }
-
-        /**
-         * Set whether or not to delete automatic command responses automatically.
-         *
-         * @param delete whether to delete responses automatically
-         */
-        public Builder setDeleteResponse(boolean delete) {
-            this.deleteResponse = delete;
-            return this;
-        }
-
-        /**
-         * Set the time before command responses are deleted.
-         *
-         * This is ignored if deleteResponse is false.
-         *
-         * @param seconds the time before deletion, in seconds
-         */
-        public Builder setDeleteResponseTime(int seconds) {
-            this.deleteResponseLength = seconds;
-            return this;
-        }
-
-        /**
          * Set whether to automatically generate a help command based on the registered {@link me.bhop.bjdautilities.command.annotation.Command}s.
          * The help command will be generated using the {@link HelpCommand}.
          *
@@ -428,61 +281,21 @@ public class CommandHandler extends ListenerAdapter {
          * @param entries the number of entries per page
          */
         public Builder setEntriesPerHelpPage(int entries) {
-            entriesPerHelpPage = entries;
+            this.entriesPerPage = entries;
             return this;
         }
 
-        /**
-         * Set whether or not the typing status will be sent before a command response.
-         *
-         * @param sendTyping whether to send typing status
-         */
-        public Builder setSendTyping(boolean sendTyping) {
-            this.sendTyping = sendTyping;
+        public Builder setUsePermissionsInHelp(boolean usePermissionsInHelp) {
+            this.helpPermissions = usePermissionsInHelp;
             return this;
         }
 
-        /**
-         * Adds the supplied package to the list of packages to search for commands to automatically register.
-         *
-         * For example, adding 'com.example.bot.commands' would search all classes with the package 'com.example.bot.commands'.
-         *
-         * @param pkg The package to search
-         */
-        public Builder autoRegisterPackage(String pkg) {
-            this.autoRegisters.add(pkg);
-            return this;
+        public GuildIndependentCommandHandler.Builder guildIndependent() {
+            return new GuildIndependentCommandHandler.Builder(jda, concurrent, responses, new HashSet<>(), customParams, results, help, entriesPerPage, helpPermissions);
         }
 
-        /**
-         * Build a new {@link CommandHandler} with the given properties.
-         *
-         * @return the compiled {@link CommandHandler}.
-         */
-        public CommandHandler build() {
-            return new CommandHandler(jda, prefix, responses, customParams, results, autoRegisters, concurrent, threadPoolSize, deleteCommands, deleteCommandLength, deleteResponse, deleteResponseLength, help, entriesPerHelpPage, sendTyping);
-        }
-    }
-
-    /**
-     * A simple runnable wrapper to handle exceptions inside.
-     */
-    private final class ThrowingRunnable implements Runnable {
-        private final Runnable delegate;
-
-        private ThrowingRunnable(Runnable delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public void run() {
-            try {
-                delegate.run();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        public GuildDependentCommandHandler.Builder guildDependent() {
+            return new GuildDependentCommandHandler.Builder(jda, concurrent, responses, new HashSet<>(), customParams, results, help, entriesPerPage, helpPermissions);
         }
     }
 }
-
-

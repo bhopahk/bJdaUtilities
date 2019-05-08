@@ -31,17 +31,14 @@ import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.annotation.Execute;
 import me.bhop.bjdautilities.command.result.CommandResult;
 import net.dv8tion.jda.core.EmbedBuilder;
-import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.MessageEmbed;
-import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.entities.*;
 
 import java.awt.*;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -51,19 +48,22 @@ import java.util.stream.Stream;
 @Command(label = {"help"}, usage = "help", description = "Receive information about all commands!")
 public class HelpCommand {
     private final int numEntries;
-    private final String prefix;
+    private final Function<Guild, String> prefix;
+    private final boolean usePermissions;
 
-    public HelpCommand(int numEntries, String prefix) {
+    public HelpCommand(int numEntries, Function<Guild, String> prefix, boolean usePermissions) {
         this.numEntries = numEntries;
         this.prefix = prefix;
+        this.usePermissions = usePermissions;
     }
 
     @Execute
     public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, Supplier<Set<LoadedCommand>> commandFetcher) {
         Set<LoadedCommand> commands = commandFetcher.get();
-        int maxPages = commands.size() % numEntries == 0 ? commands.size() / numEntries : commands.size() / numEntries + 1;
+        int count = (int) commandFetcher.get().stream().filter(cmd -> !usePermissions || member.hasPermission(cmd.getPermission())).count();
+        int maxPages = count % numEntries == 0 ? count / numEntries : count / numEntries + 1;
         ReactionMenu.Builder menuBuilder = new ReactionMenu.Builder(member.getJDA())
-                .setEmbed(generatePage(1, maxPages, commands.stream().limit(numEntries), member.getJDA()))
+                .setEmbed(generatePage(1, maxPages, commands.stream().filter(cmd -> !usePermissions || member.hasPermission(cmd.getPermission())).limit(numEntries), member))
                 .onDisplay(menu -> menu.data.put("page", 1))
                 .onClick("\u274C", ReactionMenu::destroy);
         if (maxPages > 1) {
@@ -72,25 +72,25 @@ public class HelpCommand {
                 if (page == 1)
                     return;
                 menu.data.put("page", --page);
-                menu.getMessage().setContent(generatePage(page, maxPages, commands.stream().skip((page - 1) * numEntries).limit(numEntries), member.getJDA()));
+                menu.getMessage().setContent(generatePage(page, maxPages, commands.stream().filter(cmd -> !usePermissions || member.hasPermission(cmd.getPermission())).skip((page - 1) * numEntries).limit(numEntries), member));
             });
             menuBuilder.onClick("\u25B6", menu -> { //forwards
                 int page = (int) menu.data.get("page");
                 if (page == maxPages)
                     return;
                 menu.data.put("page", ++page);
-                menu.getMessage().setContent(generatePage(page, maxPages, commands.stream().skip((page - 1) * numEntries).limit(numEntries), member.getJDA()));
+                menu.getMessage().setContent(generatePage(page, maxPages, commands.stream().filter(cmd -> !usePermissions || member.hasPermission(cmd.getPermission())).skip((page - 1) * numEntries).limit(numEntries), member));
             });
         }
         menuBuilder.buildAndDisplay(channel);
         return CommandResult.success();
     }
 
-    private MessageEmbed generatePage(int page, int max, Stream<LoadedCommand> commands, JDA jda) {
+    private MessageEmbed generatePage(int page, int max, Stream<LoadedCommand> commands, Member sender) {
         EmbedBuilder newEmbed = new EmbedBuilder();
         newEmbed.setTitle("__**Available Commands:**__");
         newEmbed.setColor(Color.CYAN);
-        newEmbed.setFooter("Page " + page + " of " + max, jda.getSelfUser().getAvatarUrl());
+        newEmbed.setFooter("Page " + page + " of " + max, sender.getJDA().getSelfUser().getAvatarUrl());
         newEmbed.setTimestamp(Instant.now());
         commands.filter(cmd -> !cmd.isHiddenFromHelp()).forEach(cmd -> {
             StringBuilder aka = new StringBuilder("**");
@@ -116,7 +116,7 @@ public class HelpCommand {
             if (!cmd.getDescription().equals(""))
                 desc.append("\u2022\u0020**Description:** ").append(cmd.getDescription()).append("\n");
             if (!cmd.getUsageString().equals(""))
-                desc.append("\u2022\u0020**Usage:** ").append(prefix).append(cmd.getUsageString()).append("\n");
+                desc.append("\u2022\u0020**Usage:** ").append(prefix.apply(sender.getGuild())).append(cmd.getUsageString()).append("\n");
             desc.append("\u2022\u0020**Permission:** ").append(cmd.getPermission().get(0) == Permission.UNKNOWN ? "None" : cmd.getPermission().get(0).getName()).append("\n"); //todo temporarily first permission
 
             if (desc.charAt(desc.length() - 1) == '\n')
