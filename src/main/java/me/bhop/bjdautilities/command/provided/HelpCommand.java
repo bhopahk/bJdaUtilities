@@ -54,7 +54,6 @@ public class HelpCommand {
     private final int numEntries;
     private final Function<Guild, String> prefix;
     private final boolean usePermissions;
-    int page = 1;
 
     public HelpCommand(int numEntries, Function<Guild, String> prefix, boolean usePermissions) {
         this.numEntries = numEntries;
@@ -65,7 +64,7 @@ public class HelpCommand {
     @Execute
     public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, Supplier<Set<LoadedCommand>> commandFetcher) {
         Set<LoadedCommand> commands = commandFetcher.get();
-        page = 1;
+        int page = 1;
         int count = 1;
         int size = (int) commandFetcher.get().stream().filter(cmd -> !usePermissions || member.hasPermission(cmd.getPermission())).count();
         int maxPages = size % numEntries == 0 ? size / numEntries : size / numEntries + 1;
@@ -73,8 +72,10 @@ public class HelpCommand {
         List<Page> content = new ArrayList<>();
         PaginationEmbed.Builder builder = new PaginationEmbed.Builder(member.getJDA());
         while (count <= maxPages) {
-            content.add(generatePage(numEntries, maxPages, commands.stream()
+            content.add(generatePage(page,numEntries, maxPages, commands.stream()
                     .filter(cmd -> !usePermissions || member.hasPermission(cmd.getPermission())).skip((count - 1) * numEntries).limit(numEntries), member));
+            if (page < maxPages)
+                page++;
             count++;
         }
         content.forEach(page1 -> builder.addPage(page1));
@@ -82,11 +83,9 @@ public class HelpCommand {
         return CommandResult.success();
     }
 
-    private Page generatePage(int limit, int maxPages, Stream<LoadedCommand> commands, Member sender) {
+    private Page generatePage(int page, int limit, int maxPages, Stream<LoadedCommand> commands, Member sender) {
         PageBuilder pageBuilder = new PageBuilder().setEntryLimit(limit).includeTimestamp(true).setColor(Color.CYAN).setTitle("__**Available Commands:**__");
         pageBuilder.setFooter("Page " + page + " of " + maxPages, sender.getJDA().getSelfUser().getAvatarUrl());
-        if (page < maxPages)
-            page++;
         commands.filter(cmd -> !cmd.isHiddenFromHelp()).forEach(cmd -> {
             StringBuilder aka = new StringBuilder("**");
             String label = cmd.getLabels().get(0);
@@ -117,7 +116,6 @@ public class HelpCommand {
             lines.add("\u2022\u0020**Permission:** " + (cmd.getPermission().get(0) == Permission.UNKNOWN ? "None" : cmd.getPermission().get(0).getName())); //todo temporarily first permission
             pageBuilder.addContent(false, aka.toString(), lines.toArray(new String[0]));
         });
-
         return pageBuilder.build();
     }
 }
