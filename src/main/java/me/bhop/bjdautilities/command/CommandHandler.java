@@ -82,7 +82,9 @@ public abstract class CommandHandler extends ListenerAdapter {
                     .filter(cmd -> cmd.getLabels().contains(label.toLowerCase()))
                     .findFirst();
             if (!opt.isPresent()) {
-                messenger.sendMessage(channel, responses.unknownCommand(message, prefix), responseLifetime);
+                Message m = responses.unknownCommand(message, prefix);
+                if (m != null)
+                    messenger.sendMessage(channel, m, responseLifetime);
                 return;
             }
 
