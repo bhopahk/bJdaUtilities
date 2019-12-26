@@ -6,8 +6,11 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.requests.restaction.AuditableRestAction;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
-import net.dv8tion.jda.client.entities.Group;
+import net.dv8tion.jda.api.requests.restaction.pagination.ReactionPaginationAction;
+import org.apache.commons.collections4.Bag;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.time.OffsetDateTime;
 import java.util.Formatter;
 import java.util.List;
@@ -18,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 public class EditableMessage implements Message {
+
     private static final ScheduledExecutorService executor = Executors.newScheduledThreadPool(2);
 
     public static EditableMessage wrap(Message message) {
@@ -97,40 +101,64 @@ public class EditableMessage implements Message {
         task = null;
     }
 
-    // Below is all delegate methods...
+    // Delegate Message
 
+    @Nonnull
     @Override
     public List<User> getMentionedUsers() {
         return delegate.getMentionedUsers();
     }
 
+    @Nonnull
+    @Override
+    public Bag<User> getMentionedUsersBag() {
+        return delegate.getMentionedUsersBag();
+    }
+
+    @Nonnull
     @Override
     public List<TextChannel> getMentionedChannels() {
         return delegate.getMentionedChannels();
     }
 
+    @Nonnull
+    @Override
+    public Bag<TextChannel> getMentionedChannelsBag() {
+        return delegate.getMentionedChannelsBag();
+    }
+
+    @Nonnull
     @Override
     public List<Role> getMentionedRoles() {
         return delegate.getMentionedRoles();
     }
 
+    @Nonnull
     @Override
-    public List<Member> getMentionedMembers(Guild guild) {
+    public Bag<Role> getMentionedRolesBag() {
+        return delegate.getMentionedRolesBag();
+    }
+
+    @Nonnull
+    @Override
+    public List<Member> getMentionedMembers(@Nonnull Guild guild) {
         return delegate.getMentionedMembers(guild);
     }
 
+    @Nonnull
     @Override
     public List<Member> getMentionedMembers() {
         return delegate.getMentionedMembers();
     }
 
+    @Nonnull
     @Override
-    public List<IMentionable> getMentions(MentionType... types) {
+    public List<IMentionable> getMentions(@Nonnull MentionType... types) {
         return delegate.getMentions(types);
     }
 
     @Override
-    public boolean isMentioned(IMentionable mentionable, MentionType... types) {
+    public boolean isMentioned(@Nonnull IMentionable mentionable, @Nonnull MentionType... types) {
         return delegate.isMentioned(mentionable, types);
     }
 
@@ -144,56 +172,66 @@ public class EditableMessage implements Message {
         return delegate.isEdited();
     }
 
+    @Nullable
     @Override
-    public OffsetDateTime getEditedTime() {
+    public OffsetDateTime getTimeEdited() {
         return delegate.getTimeEdited();
     }
 
+    @Nonnull
     @Override
     public User getAuthor() {
         return delegate.getAuthor();
     }
 
+    @Nullable
     @Override
     public Member getMember() {
         return delegate.getMember();
     }
 
+    @Nonnull
     @Override
     public String getJumpUrl() {
         return delegate.getJumpUrl();
     }
 
+    @Nonnull
     @Override
     public String getContentDisplay() {
         return delegate.getContentDisplay();
     }
 
+    @Nonnull
     @Override
     public String getContentRaw() {
         return delegate.getContentRaw();
     }
 
+    @Nonnull
     @Override
     public String getContentStripped() {
         return delegate.getContentStripped();
     }
 
+    @Nonnull
     @Override
     public List<String> getInvites() {
         return delegate.getInvites();
     }
 
+    @Nullable
     @Override
     public String getNonce() {
         return delegate.getNonce();
     }
 
     @Override
-    public boolean isFromType(ChannelType type) {
+    public boolean isFromType(@Nonnull ChannelType type) {
         return delegate.isFromType(type);
     }
 
+    @Nonnull
     @Override
     public ChannelType getChannelType() {
         return delegate.getChannelType();
@@ -204,51 +242,61 @@ public class EditableMessage implements Message {
         return delegate.isWebhookMessage();
     }
 
+    @Nonnull
     @Override
     public MessageChannel getChannel() {
         return delegate.getChannel();
     }
 
+    @Nonnull
     @Override
     public PrivateChannel getPrivateChannel() {
         return delegate.getPrivateChannel();
     }
 
-    @Override
-    public Group getGroup() {
-        return delegate.getGroup();
-    }
-
+    @Nonnull
     @Override
     public TextChannel getTextChannel() {
         return delegate.getTextChannel();
     }
 
+    @Nullable
     @Override
     public Category getCategory() {
         return delegate.getCategory();
     }
 
+    @Nonnull
     @Override
     public Guild getGuild() {
         return delegate.getGuild();
     }
 
+    @Nonnull
     @Override
     public List<Attachment> getAttachments() {
         return delegate.getAttachments();
     }
 
+    @Nonnull
     @Override
     public List<MessageEmbed> getEmbeds() {
         return delegate.getEmbeds();
     }
 
+    @Nonnull
     @Override
     public List<Emote> getEmotes() {
         return delegate.getEmotes();
     }
 
+    @Nonnull
+    @Override
+    public Bag<Emote> getEmotesBag() {
+        return delegate.getEmotesBag();
+    }
+
+    @Nonnull
     @Override
     public List<MessageReaction> getReactions() {
         return delegate.getReactions();
@@ -259,31 +307,43 @@ public class EditableMessage implements Message {
         return delegate.isTTS();
     }
 
+    @Nullable
     @Override
-    public MessageAction editMessage(CharSequence newContent) {
+    public MessageActivity getActivity() {
+        return delegate.getActivity();
+    }
+
+    @Nonnull
+    @Override
+    public MessageAction editMessage(@Nonnull CharSequence newContent) {
         return delegate.editMessage(newContent);
     }
 
+    @Nonnull
     @Override
-    public MessageAction editMessage(MessageEmbed newContent) {
+    public MessageAction editMessage(@Nonnull MessageEmbed newContent) {
         return delegate.editMessage(newContent);
     }
 
+    @Nonnull
     @Override
-    public MessageAction editMessageFormat(String format, Object... args) {
+    public MessageAction editMessageFormat(@Nonnull String format, @Nonnull Object... args) {
         return delegate.editMessageFormat(format, args);
     }
 
+    @Nonnull
     @Override
-    public MessageAction editMessage(Message newContent) {
+    public MessageAction editMessage(@Nonnull Message newContent) {
         return delegate.editMessage(newContent);
     }
 
+    @Nonnull
     @Override
     public AuditableRestAction<Void> delete() {
         return delegate.delete();
     }
 
+    @Nonnull
     @Override
     public JDA getJDA() {
         return delegate.getJDA();
@@ -294,31 +354,91 @@ public class EditableMessage implements Message {
         return delegate.isPinned();
     }
 
+    @Nonnull
     @Override
     public RestAction<Void> pin() {
         return delegate.pin();
     }
 
+    @Nonnull
     @Override
     public RestAction<Void> unpin() {
         return delegate.unpin();
     }
 
+    @Nonnull
     @Override
-    public RestAction<Void> addReaction(Emote emote) {
+    public RestAction<Void> addReaction(@Nonnull Emote emote) {
         return delegate.addReaction(emote);
     }
 
+    @Nonnull
     @Override
-    public RestAction<Void> addReaction(String unicode) {
+    public RestAction<Void> addReaction(@Nonnull String unicode) {
         return delegate.addReaction(unicode);
     }
 
+    @Nonnull
     @Override
     public RestAction<Void> clearReactions() {
         return delegate.clearReactions();
     }
 
+    @Nonnull
+    @Override
+    public RestAction<Void> removeReaction(@Nonnull Emote emote) {
+        return delegate.removeReaction(emote);
+    }
+
+    @Nonnull
+    @Override
+    public RestAction<Void> removeReaction(@Nonnull Emote emote, @Nonnull User user) {
+        return delegate.removeReaction(emote, user);
+    }
+
+    @Nonnull
+    @Override
+    public RestAction<Void> removeReaction(@Nonnull String unicode) {
+        return delegate.removeReaction(unicode);
+    }
+
+    @Nonnull
+    @Override
+    public RestAction<Void> removeReaction(@Nonnull String unicode, @Nonnull User user) {
+        return delegate.removeReaction(unicode, user);
+    }
+
+    @Nonnull
+    @Override
+    public ReactionPaginationAction retrieveReactionUsers(@Nonnull Emote emote) {
+        return delegate.retrieveReactionUsers(emote);
+    }
+
+    @Nonnull
+    @Override
+    public ReactionPaginationAction retrieveReactionUsers(@Nonnull String unicode) {
+        return delegate.retrieveReactionUsers(unicode);
+    }
+
+    @Nullable
+    @Override
+    public MessageReaction.ReactionEmote getReactionByUnicode(@Nonnull String unicode) {
+        return delegate.getReactionByUnicode(unicode);
+    }
+
+    @Nullable
+    @Override
+    public MessageReaction.ReactionEmote getReactionById(@Nonnull String id) {
+        return delegate.getReactionById(id);
+    }
+
+    @Nullable
+    @Override
+    public MessageReaction.ReactionEmote getReactionById(long id) {
+        return delegate.getReactionById(id);
+    }
+
+    @Nonnull
     @Override
     public MessageType getType() {
         return delegate.getType();
