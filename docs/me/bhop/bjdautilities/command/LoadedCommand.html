@@ -151,9 +151,9 @@ extends java.lang.Object</pre>
 </tr>
 <tr id="i3" class="rowColor">
 <td class="colFirst"><code><a href="../../../../me/bhop/bjdautilities/command/result/CommandResult.html" title="interface in me.bhop.bjdautilities.command.result">CommandResult</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../me/bhop/bjdautilities/command/LoadedCommand.html#execute-net.dv8tion.jda.core.entities.Member-net.dv8tion.jda.core.entities.TextChannel-net.dv8tion.jda.core.entities.Message-java.lang.String-java.util.List-">execute</a></span>(net.dv8tion.jda.core.entities.Member&nbsp;member,
-       net.dv8tion.jda.core.entities.TextChannel&nbsp;channel,
-       net.dv8tion.jda.core.entities.Message&nbsp;message,
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../me/bhop/bjdautilities/command/LoadedCommand.html#execute-net.dv8tion.jda.api.entities.Member-net.dv8tion.jda.api.entities.TextChannel-net.dv8tion.jda.api.entities.Message-java.lang.String-java.util.List-">execute</a></span>(net.dv8tion.jda.api.entities.Member&nbsp;member,
+       net.dv8tion.jda.api.entities.TextChannel&nbsp;channel,
+       net.dv8tion.jda.api.entities.Message&nbsp;message,
        java.lang.String&nbsp;label,
        java.util.List&lt;java.lang.String&gt;&nbsp;args)</code>
 <div class="block">Execute this command.</div>
@@ -212,7 +212,7 @@ extends java.lang.Object</pre>
 </td>
 </tr>
 <tr id="i12" class="altColor">
-<td class="colFirst"><code>java.util.List&lt;net.dv8tion.jda.core.Permission&gt;</code></td>
+<td class="colFirst"><code>java.util.List&lt;net.dv8tion.jda.api.Permission&gt;</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../me/bhop/bjdautilities/command/LoadedCommand.html#getPermission--">getPermission</a></span>()</code>
 <div class="block">Get the permission nodes required to execute this command.</div>
 </td>
@@ -249,9 +249,9 @@ extends java.lang.Object</pre>
 </tr>
 <tr id="i18" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../me/bhop/bjdautilities/command/LoadedCommand.html#usage-net.dv8tion.jda.core.entities.Member-net.dv8tion.jda.core.entities.TextChannel-net.dv8tion.jda.core.entities.Message-java.lang.String-java.util.List-">usage</a></span>(net.dv8tion.jda.core.entities.Member&nbsp;member,
-     net.dv8tion.jda.core.entities.TextChannel&nbsp;channel,
-     net.dv8tion.jda.core.entities.Message&nbsp;message,
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../me/bhop/bjdautilities/command/LoadedCommand.html#usage-net.dv8tion.jda.api.entities.Member-net.dv8tion.jda.api.entities.TextChannel-net.dv8tion.jda.api.entities.Message-java.lang.String-java.util.List-">usage</a></span>(net.dv8tion.jda.api.entities.Member&nbsp;member,
+     net.dv8tion.jda.api.entities.TextChannel&nbsp;channel,
+     net.dv8tion.jda.api.entities.Message&nbsp;message,
      java.lang.String&nbsp;label,
      java.util.List&lt;java.lang.String&gt;&nbsp;args)</code>
 <div class="block">Execute a usage override on this command, if it exists.</div>
@@ -317,15 +317,15 @@ extends java.lang.Object</pre>
 </dl>
 </li>
 </ul>
-<a name="execute-net.dv8tion.jda.core.entities.Member-net.dv8tion.jda.core.entities.TextChannel-net.dv8tion.jda.core.entities.Message-java.lang.String-java.util.List-">
+<a name="execute-net.dv8tion.jda.api.entities.Member-net.dv8tion.jda.api.entities.TextChannel-net.dv8tion.jda.api.entities.Message-java.lang.String-java.util.List-">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>execute</h4>
-<pre>public&nbsp;<a href="../../../../me/bhop/bjdautilities/command/result/CommandResult.html" title="interface in me.bhop.bjdautilities.command.result">CommandResult</a>&nbsp;execute(net.dv8tion.jda.core.entities.Member&nbsp;member,
-                             net.dv8tion.jda.core.entities.TextChannel&nbsp;channel,
-                             net.dv8tion.jda.core.entities.Message&nbsp;message,
+<pre>public&nbsp;<a href="../../../../me/bhop/bjdautilities/command/result/CommandResult.html" title="interface in me.bhop.bjdautilities.command.result">CommandResult</a>&nbsp;execute(net.dv8tion.jda.api.entities.Member&nbsp;member,
+                             net.dv8tion.jda.api.entities.TextChannel&nbsp;channel,
+                             net.dv8tion.jda.api.entities.Message&nbsp;message,
                              java.lang.String&nbsp;label,
                              java.util.List&lt;java.lang.String&gt;&nbsp;args)</pre>
 <div class="block">Execute this command.</div>
@@ -341,15 +341,15 @@ extends java.lang.Object</pre>
 </dl>
 </li>
 </ul>
-<a name="usage-net.dv8tion.jda.core.entities.Member-net.dv8tion.jda.core.entities.TextChannel-net.dv8tion.jda.core.entities.Message-java.lang.String-java.util.List-">
+<a name="usage-net.dv8tion.jda.api.entities.Member-net.dv8tion.jda.api.entities.TextChannel-net.dv8tion.jda.api.entities.Message-java.lang.String-java.util.List-">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>usage</h4>
-<pre>public&nbsp;boolean&nbsp;usage(net.dv8tion.jda.core.entities.Member&nbsp;member,
-                     net.dv8tion.jda.core.entities.TextChannel&nbsp;channel,
-                     net.dv8tion.jda.core.entities.Message&nbsp;message,
+<pre>public&nbsp;boolean&nbsp;usage(net.dv8tion.jda.api.entities.Member&nbsp;member,
+                     net.dv8tion.jda.api.entities.TextChannel&nbsp;channel,
+                     net.dv8tion.jda.api.entities.Message&nbsp;message,
                      java.lang.String&nbsp;label,
                      java.util.List&lt;java.lang.String&gt;&nbsp;args)</pre>
 <div class="block">Execute a usage override on this command, if it exists.</div>
@@ -447,7 +447,7 @@ extends java.lang.Object</pre>
 <ul class="blockList">
 <li class="blockList">
 <h4>getPermission</h4>
-<pre>public&nbsp;java.util.List&lt;net.dv8tion.jda.core.Permission&gt;&nbsp;getPermission()</pre>
+<pre>public&nbsp;java.util.List&lt;net.dv8tion.jda.api.Permission&gt;&nbsp;getPermission()</pre>
 <div class="block">Get the permission nodes required to execute this command.
 
  Permissions are considered with AND logic, meaning the user requires all of the

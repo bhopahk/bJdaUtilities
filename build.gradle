@@ -10,7 +10,7 @@ plugins {
 
 group 'me.bhop'
 //artifactId 'bjdautilities'
-project.version = new me.bhop.autoversiongradle.AutoVersionRunner().getVersion(null, "bjdautilities")
+//project.version = new me.bhop.autoversiongradle.AutoVersionRunner().getVersion(null, "bjdautilities")
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -21,7 +21,7 @@ repositories {
 }
 
 dependencies {
-    compile 'net.dv8tion:JDA:3.8.1_447'
+    compile 'net.dv8tion:JDA:4.1.0_86'
 }
 
 autoversion {
@@ -43,7 +43,7 @@ task javadocJar(type: Jar) {
 
 task sourcesJar(type: Jar) {
     classifier = 'sources'
-    from sourceSets.main.allSource;
+    from sourceSets.main.allSource
 }
 
 artifacts {
@@ -54,9 +54,9 @@ uploadArchives {
     repositories {
         mavenDeployer {
             // Sign pom
-            beforeDeployment {
-                MavenDeployment deployment -> signing.signPom(deployment)
-            }
+//            beforeDeployment {
+//                MavenDeployment deployment -> signing.signPom(deployment)
+//            }
 
             // Destination Repository
             repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {

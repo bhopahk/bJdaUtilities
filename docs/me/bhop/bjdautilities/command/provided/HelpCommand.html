@@ -130,7 +130,7 @@ extends java.lang.Object</pre>
 </tr>
 <tr class="altColor">
 <td class="colOne"><code><span class="memberNameLink"><a href="../../../../../me/bhop/bjdautilities/command/provided/HelpCommand.html#HelpCommand-int-java.util.function.Function-boolean-">HelpCommand</a></span>(int&nbsp;numEntries,
-           java.util.function.Function&lt;net.dv8tion.jda.core.entities.Guild,java.lang.String&gt;&nbsp;prefix,
+           java.util.function.Function&lt;net.dv8tion.jda.api.entities.Guild,java.lang.String&gt;&nbsp;prefix,
            boolean&nbsp;usePermissions)</code>&nbsp;</td>
 </tr>
 </table>
@@ -150,9 +150,9 @@ extends java.lang.Object</pre>
 </tr>
 <tr id="i0" class="altColor">
 <td class="colFirst"><code><a href="../../../../../me/bhop/bjdautilities/command/result/CommandResult.html" title="interface in me.bhop.bjdautilities.command.result">CommandResult</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../me/bhop/bjdautilities/command/provided/HelpCommand.html#onExecute-net.dv8tion.jda.core.entities.Member-net.dv8tion.jda.core.entities.TextChannel-net.dv8tion.jda.core.entities.Message-java.lang.String-java.util.List-java.util.function.Supplier-">onExecute</a></span>(net.dv8tion.jda.core.entities.Member&nbsp;member,
-         net.dv8tion.jda.core.entities.TextChannel&nbsp;channel,
-         net.dv8tion.jda.core.entities.Message&nbsp;message,
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../me/bhop/bjdautilities/command/provided/HelpCommand.html#onExecute-net.dv8tion.jda.api.entities.Member-net.dv8tion.jda.api.entities.TextChannel-net.dv8tion.jda.api.entities.Message-java.lang.String-java.util.List-java.util.function.Supplier-">onExecute</a></span>(net.dv8tion.jda.api.entities.Member&nbsp;member,
+         net.dv8tion.jda.api.entities.TextChannel&nbsp;channel,
+         net.dv8tion.jda.api.entities.Message&nbsp;message,
          java.lang.String&nbsp;label,
          java.util.List&lt;java.lang.String&gt;&nbsp;args,
          java.util.function.Supplier&lt;java.util.Set&lt;<a href="../../../../../me/bhop/bjdautilities/command/LoadedCommand.html" title="class in me.bhop.bjdautilities.command">LoadedCommand</a>&gt;&gt;&nbsp;commandFetcher)</code>&nbsp;</td>
@@ -186,7 +186,7 @@ extends java.lang.Object</pre>
 <li class="blockList">
 <h4>HelpCommand</h4>
 <pre>public&nbsp;HelpCommand(int&nbsp;numEntries,
-                   java.util.function.Function&lt;net.dv8tion.jda.core.entities.Guild,java.lang.String&gt;&nbsp;prefix,
+                   java.util.function.Function&lt;net.dv8tion.jda.api.entities.Guild,java.lang.String&gt;&nbsp;prefix,
                    boolean&nbsp;usePermissions)</pre>
 </li>
 </ul>
@@ -198,15 +198,15 @@ extends java.lang.Object</pre>
 <!--   -->
 </a>
 <h3>Method Detail</h3>
-<a name="onExecute-net.dv8tion.jda.core.entities.Member-net.dv8tion.jda.core.entities.TextChannel-net.dv8tion.jda.core.entities.Message-java.lang.String-java.util.List-java.util.function.Supplier-">
+<a name="onExecute-net.dv8tion.jda.api.entities.Member-net.dv8tion.jda.api.entities.TextChannel-net.dv8tion.jda.api.entities.Message-java.lang.String-java.util.List-java.util.function.Supplier-">
 <!--   -->
 </a>
 <ul class="blockListLast">
 <li class="blockList">
 <h4>onExecute</h4>
-<pre>public&nbsp;<a href="../../../../../me/bhop/bjdautilities/command/result/CommandResult.html" title="interface in me.bhop.bjdautilities.command.result">CommandResult</a>&nbsp;onExecute(net.dv8tion.jda.core.entities.Member&nbsp;member,
-                               net.dv8tion.jda.core.entities.TextChannel&nbsp;channel,
-                               net.dv8tion.jda.core.entities.Message&nbsp;message,
+<pre>public&nbsp;<a href="../../../../../me/bhop/bjdautilities/command/result/CommandResult.html" title="interface in me.bhop.bjdautilities.command.result">CommandResult</a>&nbsp;onExecute(net.dv8tion.jda.api.entities.Member&nbsp;member,
+                               net.dv8tion.jda.api.entities.TextChannel&nbsp;channel,
+                               net.dv8tion.jda.api.entities.Message&nbsp;message,
                                java.lang.String&nbsp;label,
                                java.util.List&lt;java.lang.String&gt;&nbsp;args,
                                java.util.function.Supplier&lt;java.util.Set&lt;<a href="../../../../../me/bhop/bjdautilities/command/LoadedCommand.html" title="class in me.bhop.bjdautilities.command">LoadedCommand</a>&gt;&gt;&nbsp;commandFetcher)</pre>

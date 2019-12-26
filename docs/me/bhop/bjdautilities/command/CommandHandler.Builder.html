@@ -132,7 +132,7 @@ extends java.lang.Object</pre>
 <th class="colOne" scope="col">Constructor and Description</th>
 </tr>
 <tr class="altColor">
-<td class="colOne"><code><span class="memberNameLink"><a href="../../../../me/bhop/bjdautilities/command/CommandHandler.Builder.html#Builder-net.dv8tion.jda.core.JDA-">Builder</a></span>(net.dv8tion.jda.core.JDA&nbsp;jda)</code>
+<td class="colOne"><code><span class="memberNameLink"><a href="../../../../me/bhop/bjdautilities/command/CommandHandler.Builder.html#Builder-net.dv8tion.jda.api.JDA-">Builder</a></span>(net.dv8tion.jda.api.JDA&nbsp;jda)</code>
 <div class="block">Create a new builder instance.</div>
 </td>
 </tr>
@@ -161,7 +161,7 @@ extends java.lang.Object</pre>
 <tr id="i1" class="rowColor">
 <td class="colFirst"><code>&lt;T extends <a href="../../../../me/bhop/bjdautilities/command/result/CommandResult.html" title="interface in me.bhop.bjdautilities.command.result">CommandResult</a>&gt;<br><a href="../../../../me/bhop/bjdautilities/command/CommandHandler.Builder.html" title="class in me.bhop.bjdautilities.command">CommandHandler.Builder</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../me/bhop/bjdautilities/command/CommandHandler.Builder.html#addResultHandler-java.lang.Class-me.bhop.bjdautilities.util.TriConsumer-">addResultHandler</a></span>(java.lang.Class&lt;T&gt;&nbsp;target,
-                <a href="../../../../me/bhop/bjdautilities/util/TriConsumer.html" title="interface in me.bhop.bjdautilities.util">TriConsumer</a>&lt;T,<a href="../../../../me/bhop/bjdautilities/command/LoadedCommand.html" title="class in me.bhop.bjdautilities.command">LoadedCommand</a>,net.dv8tion.jda.core.entities.Message&gt;&nbsp;handle)</code>
+                <a href="../../../../me/bhop/bjdautilities/util/TriConsumer.html" title="interface in me.bhop.bjdautilities.util">TriConsumer</a>&lt;T,<a href="../../../../me/bhop/bjdautilities/command/LoadedCommand.html" title="class in me.bhop.bjdautilities.command">LoadedCommand</a>,net.dv8tion.jda.api.entities.Message&gt;&nbsp;handle)</code>
 <div class="block">Add a handler for a custom <a href="../../../../me/bhop/bjdautilities/command/result/CommandResult.html" title="interface in me.bhop.bjdautilities.command.result"><code>CommandResult</code></a>.</div>
 </td>
 </tr>
@@ -223,13 +223,13 @@ extends java.lang.Object</pre>
 <!--   -->
 </a>
 <h3>Constructor Detail</h3>
-<a name="Builder-net.dv8tion.jda.core.JDA-">
+<a name="Builder-net.dv8tion.jda.api.JDA-">
 <!--   -->
 </a>
 <ul class="blockListLast">
 <li class="blockList">
 <h4>Builder</h4>
-<pre>public&nbsp;Builder(net.dv8tion.jda.core.JDA&nbsp;jda)</pre>
+<pre>public&nbsp;Builder(net.dv8tion.jda.api.JDA&nbsp;jda)</pre>
 <div class="block">Create a new builder instance.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -288,7 +288,7 @@ extends java.lang.Object</pre>
 <li class="blockList">
 <h4>addResultHandler</h4>
 <pre>public&nbsp;&lt;T extends <a href="../../../../me/bhop/bjdautilities/command/result/CommandResult.html" title="interface in me.bhop.bjdautilities.command.result">CommandResult</a>&gt;&nbsp;<a href="../../../../me/bhop/bjdautilities/command/CommandHandler.Builder.html" title="class in me.bhop.bjdautilities.command">CommandHandler.Builder</a>&nbsp;addResultHandler(java.lang.Class&lt;T&gt;&nbsp;target,
-                                                                         <a href="../../../../me/bhop/bjdautilities/util/TriConsumer.html" title="interface in me.bhop.bjdautilities.util">TriConsumer</a>&lt;T,<a href="../../../../me/bhop/bjdautilities/command/LoadedCommand.html" title="class in me.bhop.bjdautilities.command">LoadedCommand</a>,net.dv8tion.jda.core.entities.Message&gt;&nbsp;handle)</pre>
+                                                                         <a href="../../../../me/bhop/bjdautilities/util/TriConsumer.html" title="interface in me.bhop.bjdautilities.util">TriConsumer</a>&lt;T,<a href="../../../../me/bhop/bjdautilities/command/LoadedCommand.html" title="class in me.bhop.bjdautilities.command">LoadedCommand</a>,net.dv8tion.jda.api.entities.Message&gt;&nbsp;handle)</pre>
 <div class="block">Add a handler for a custom <a href="../../../../me/bhop/bjdautilities/command/result/CommandResult.html" title="interface in me.bhop.bjdautilities.command.result"><code>CommandResult</code></a>.
 
  This can handle any <a href="../../../../me/bhop/bjdautilities/command/result/CommandResult.html" title="interface in me.bhop.bjdautilities.command.result"><code>CommandResult</code></a> with the exception of the

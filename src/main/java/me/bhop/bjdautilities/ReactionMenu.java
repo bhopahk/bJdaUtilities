@@ -25,18 +25,18 @@
 
 package me.bhop.bjdautilities;
 
-import net.dv8tion.jda.core.JDA;
-import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.MessageChannel;
-import net.dv8tion.jda.core.entities.MessageEmbed;
-import net.dv8tion.jda.core.entities.User;
-import net.dv8tion.jda.core.events.message.guild.react.GuildMessageReactionAddEvent;
-import net.dv8tion.jda.core.events.message.guild.react.GuildMessageReactionRemoveEvent;
-import net.dv8tion.jda.core.events.message.priv.react.PrivateMessageReactionAddEvent;
-import net.dv8tion.jda.core.events.message.priv.react.PrivateMessageReactionRemoveEvent;
-import net.dv8tion.jda.core.exceptions.ErrorResponseException;
-import net.dv8tion.jda.core.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionAddEvent;
+import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionRemoveEvent;
+import net.dv8tion.jda.api.events.message.priv.react.PrivateMessageReactionAddEvent;
+import net.dv8tion.jda.api.events.message.priv.react.PrivateMessageReactionRemoveEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -159,7 +159,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
                 return;
             message.cancelUpdater();
             closeEvents.forEach(action -> action.accept(this));
-            message.delete().complete();
+            message.delete().queue();
             message = null;
         }, seconds, TimeUnit.SECONDS);
     }
@@ -239,7 +239,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
             try {
                 if (super.removeReactions)
-                    event.getReaction().removeReaction(event.getUser()).complete();
+                    event.getReaction().removeReaction(event.getUser()).queue();
             } catch (ErrorResponseException ignored) { }
         }
 

@@ -1,12 +1,12 @@
 package me.bhop.bjdautilities;
 
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.requests.RestAction;
+import net.dv8tion.jda.api.requests.restaction.AuditableRestAction;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.client.entities.Group;
-import net.dv8tion.jda.core.JDA;
-import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.entities.*;
-import net.dv8tion.jda.core.requests.RestAction;
-import net.dv8tion.jda.core.requests.restaction.AuditableRestAction;
-import net.dv8tion.jda.core.requests.restaction.MessageAction;
 
 import java.time.OffsetDateTime;
 import java.util.Formatter;
@@ -85,7 +85,7 @@ public class EditableMessage implements Message {
      * @param jda the {@link JDA} instance
      */
     public void refreshMessage(JDA jda) {
-        delegate = jda.getTextChannelById(delegate.getChannel().getIdLong()).getMessageById(delegate.getIdLong()).complete();
+        delegate = jda.getTextChannelById(delegate.getChannel().getIdLong()).retrieveMessageById(delegate.getIdLong()).complete();
     }
 
     /**
@@ -146,7 +146,7 @@ public class EditableMessage implements Message {
 
     @Override
     public OffsetDateTime getEditedTime() {
-        return delegate.getEditedTime();
+        return delegate.getTimeEdited();
     }
 
     @Override
