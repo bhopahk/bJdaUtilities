@@ -23,16 +23,16 @@
  * SOFTWARE.
  */
 
+import me.bhop.bjdautilities.ReactionMenu;
 import me.bhop.bjdautilities.command.CommandHandler;
 import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.annotation.Execute;
 import me.bhop.bjdautilities.command.result.CommandResult;
-import net.dv8tion.jda.core.AccountType;
-import net.dv8tion.jda.core.JDA;
-import net.dv8tion.jda.core.JDABuilder;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.util.List;
 
@@ -53,7 +53,7 @@ public class Testing {
     private static JDA jda;
 
     public static void main(String[] args) throws Exception {
-        jda = new JDABuilder(AccountType.BOT).setToken(args[0]).build();
+        jda = JDABuilder.createDefault("NOT_A_TOKEN").build();
         CommandHandler handler = new CommandHandler.Builder(jda).setGenerateHelp(true).addCustomParameter(new TestObject("I am a test"))
                 .addResultHandler(CustomResults.CoolResult.class, (result, command, message) -> {
             message.getTextChannel().sendMessage("I am a custom handler w/ value of '" + result.value + "'").complete();
@@ -70,6 +70,15 @@ public class Testing {
     private static class Wahh {
         @Execute
         public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject testobj) {
+            new ReactionMenu.Builder(jda)
+                    .setMessage("Clicked the benu 0 times!")
+                    .onClick("emoben", menu -> {
+                        int count = (Integer) menu.data.getOrDefault("count", 1) + 1;
+                        menu.data.put("count", count);
+                        menu.getMessage().setContent("Clicked the benu " + count + " times!");
+                    })
+                    .buildAndDisplay(channel);
+
             return CommandResult.success();
         }
     }

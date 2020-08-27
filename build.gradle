@@ -1,16 +1,9 @@
 plugins {
     id 'java'
-    id 'me.bhop.autoversion' version '1.4.0'
-
-    // Sign the files
-    id 'signing'
-    // Upload the artifact
-    id 'maven'
 }
 
 group 'me.bhop'
-//artifactId 'bjdautilities'
-project.version = new me.bhop.autoversiongradle.AutoVersionRunner().getVersion(null, "bjdautilities")
+project.version = '1.0.0'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -21,96 +14,5 @@ repositories {
 }
 
 dependencies {
-    compile 'net.dv8tion:JDA:3.8.1_447'
+    compile 'net.dv8tion:JDA:4.2.0_198'
 }
-
-autoversion {
-    projectId 'bjdautilities'
-}
-
-
-// Signing
-signing {
-    sign configurations.archives
-}
-
-// Deploying
-// add javadoc to artifact
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from javadoc
-}
-
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from sourceSets.main.allSource;
-}
-
-artifacts {
-    archives javadocJar, sourcesJar
-}
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            // Sign pom
-            beforeDeployment {
-                MavenDeployment deployment -> signing.signPom(deployment)
-            }
-
-            // Destination Repository
-            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: sonatypeUsername, password: sonatypePassword)
-            }
-            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(userName: sonatypeUsername, password: sonatypePassword)
-            }
-
-            pom.project {
-                name 'bJdaUtilities'
-                packaging 'jar'
-                description 'A suite of classes to facilitate and expedite Discord bot development.'
-                url 'https://github.com/bhopahk/bJdaUtilities'
-
-                scm {
-                    connection 'scm:git:git://github.com/bhopahk/bJdaUtilities.git'
-                    developerConnection 'scm:git:ssh://github.com/bhopahk/bJdaUtilities.git'
-                    url 'https://github.com/bhopahk/bJdaUtilities/tree/master/'
-                }
-
-                licenses {
-                    license {
-                        name 'MIT License'
-                        url 'https://www.mit.edu/~amini/LICENSE.md'
-                    }
-                }
-
-                developers {
-                    developer {
-                        id 'bhop_'
-                        name 'Matt Worzala'
-                        email 'bhop@bhop.me'
-                        organization 'bhop.me'
-                        organizationUrl 'https://bhop.me'
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-//uploadArchives {
-//    repositories {
-//        mavenDeployer {
-//            repository(url: 'https://repo.bhop.me/repository/maven-releases/') {
-////            repository(url: 'https://repo.netbans.co.uk/repository/netbans/') {
-//                authentication(userName: nexusUsername, password: nexusPassword)
-//            }
-//
-//            pom.version = project.version
-//            pom.artifactId = "bjdautilities"
-//            pom.groupId = "me.bhop"
-//        }
-//    }
-//}

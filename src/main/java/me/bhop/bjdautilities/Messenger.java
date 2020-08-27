@@ -25,10 +25,10 @@
 
 package me.bhop.bjdautilities;
 
-import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.MessageChannel;
-import net.dv8tion.jda.core.entities.MessageEmbed;
+import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -167,7 +167,7 @@ public class Messenger {
     }
 
     public void delete(MessageChannel channel, Long id, int time) {
-        delete(channel.getMessageById(id).complete(), time);
+        delete(channel.retrieveMessageById(id).complete(), time);
     }
 
     public void delete(Message message) {

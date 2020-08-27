@@ -5,9 +5,9 @@ import me.bhop.bjdautilities.command.LoadedCommand;
 import me.bhop.bjdautilities.command.response.CommandResponses;
 import me.bhop.bjdautilities.command.result.CommandResult;
 import me.bhop.bjdautilities.util.TriConsumer;
-import net.dv8tion.jda.core.JDA;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Message;
 
 import java.util.List;
 import java.util.Map;

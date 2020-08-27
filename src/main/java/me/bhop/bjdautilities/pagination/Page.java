@@ -1,8 +1,7 @@
 package me.bhop.bjdautilities.pagination;
 
-import me.bhop.bjdautilities.ReactionMenu;
-import net.dv8tion.jda.core.EmbedBuilder;
-import net.dv8tion.jda.core.entities.MessageEmbed;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 
 import java.awt.*;
 import java.time.Instant;

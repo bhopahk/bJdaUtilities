@@ -33,10 +33,10 @@ import me.bhop.bjdautilities.command.result.CommandResult;
 import me.bhop.bjdautilities.exception.CommandExecuteException;
 import me.bhop.bjdautilities.exception.CommandInitException;
 import me.bhop.bjdautilities.exception.MethodInvocationException;
-import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

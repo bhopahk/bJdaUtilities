@@ -33,9 +33,11 @@ import me.bhop.bjdautilities.command.result.CommandResult;
 import me.bhop.bjdautilities.pagination.Page;
 import me.bhop.bjdautilities.pagination.PageBuilder;
 import me.bhop.bjdautilities.pagination.PaginationEmbed;
-import net.dv8tion.jda.core.EmbedBuilder;
-import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.*;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.awt.*;
 import java.time.Instant;

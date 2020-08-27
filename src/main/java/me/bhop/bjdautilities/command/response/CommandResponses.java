@@ -25,8 +25,8 @@
 
 package me.bhop.bjdautilities.command.response;
 
-import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Message;
 
 import java.util.List;
 
