@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class GuildIndependentCommandHandler extends CommandHandler {
-    private final String prefix;
+    private String prefix;
     private final long commandLifespan, responseLifespan;
 
     public GuildIndependentCommandHandler(JDA jda,
@@ -28,6 +28,10 @@ public class GuildIndependentCommandHandler extends CommandHandler {
         this.prefix = prefix;
         this.commandLifespan = commandLifespan;
         this.responseLifespan = responseLifespan;
+    }
+
+    public void setPrefix(String prefix) {
+        this.prefix = prefix;
     }
 
     @Override

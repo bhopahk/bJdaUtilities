@@ -511,6 +511,11 @@ public class EditableMessage implements Message {
     }
 
     @Override
+    public Message getReferencedMessage() {
+        return delegate.getReferencedMessage();
+    }
+
+    @Override
     @Nonnull
     public String getId() {
         return delegate.getId();

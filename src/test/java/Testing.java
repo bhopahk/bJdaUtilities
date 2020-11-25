@@ -53,15 +53,12 @@ public class Testing {
     private static JDA jda;
 
     public static void main(String[] args) throws Exception {
-        jda = JDABuilder.createDefault("NOT_A_TOKEN").build();
+        jda = JDABuilder.createDefault(System.getenv("DISCORD_TOKEN")).build();
         CommandHandler handler = new CommandHandler.Builder(jda).setGenerateHelp(true).addCustomParameter(new TestObject("I am a test"))
                 .addResultHandler(CustomResults.CoolResult.class, (result, command, message) -> {
             message.getTextChannel().sendMessage("I am a custom handler w/ value of '" + result.value + "'").complete();
         }).guildIndependent().setPrefix(">").build();
-        handler.register(new Wahh());
-        handler.register(new Wahh2());
-        handler.register(new Wahh3());
-        handler.register(new Wahh4());
+        handler.register(new Wahh(), new Wahh2(), new Wahh3(), new Wahh4());
         System.out.println(handler.getCommandsRecursive().size());
     }
 
@@ -87,7 +84,7 @@ public class Testing {
     private static class Wahh2 {
         @Execute
         public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject testobj) {
-            return CommandResult.success();
+            throw new RuntimeException("Wahhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh");
         }
     }
 

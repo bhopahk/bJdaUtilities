@@ -36,6 +36,10 @@ public class GuildDependentCommandHandler extends CommandHandler {
         this.responseLifespans = responseLifespans;
     }
 
+    public void setPrefix(Guild guild, String prefix) {
+        prefixes.put(guild.getIdLong(), prefix);
+    }
+
     @Override
     protected String getPrefix(Guild guild) {
         return prefixes.getOrDefault(guild.getIdLong(), defaultPrefix);
@@ -109,7 +113,7 @@ public class GuildDependentCommandHandler extends CommandHandler {
 
         /**
          * Set the time before command messages are deleted.
-         *
+         * <p>
          * This is ignored if deleteCommands is false.
          *
          * @param seconds the time before deletion, in seconds
@@ -126,7 +130,7 @@ public class GuildDependentCommandHandler extends CommandHandler {
 
         /**
          * Set the time before command responses are deleted.
-         *
+         * <p>
          * This is ignored if deleteResponse is false.
          *
          * @param seconds the time before deletion, in seconds

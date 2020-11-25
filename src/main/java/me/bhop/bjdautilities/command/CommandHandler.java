@@ -60,6 +60,8 @@ public abstract class CommandHandler extends ListenerAdapter {
 
         int responseLifetime = (int) getResponseLifespan(guild);
 
+        if(event.isWebhookMessage())
+            return;
         if (event.getAuthor().isBot())
             return;
         String prefix = getPrefix(guild);
@@ -100,7 +102,9 @@ public abstract class CommandHandler extends ListenerAdapter {
             }
 
             CommandResult result = cmd.execute(member, channel, message, label, args);
-            if (result instanceof CommandResult.NoPermission)
+            if (result == null) {
+                messenger.sendMessage(channel, responses.unknownError(message), responseLifetime);
+            } else if (result instanceof CommandResult.NoPermission)
                 messenger.sendMessage(channel, responses.noPerms(message, cmd.getPermission()), responseLifetime);
             else if (result instanceof CommandResult.InvalidArguments) {
                 if (cmd.hasUsage())
@@ -126,42 +130,46 @@ public abstract class CommandHandler extends ListenerAdapter {
      *
      * @param type the command
      */
-    public void register(Class<?> type) {
-        try {
-            register(type.newInstance());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+    public void register(Class<?>... type) {
+        for (Class<?> clazz : type) {
+            try {
+                register(clazz.newInstance());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
     /**
      * Register a new command given an instance of it.
      *
-     * @param command the command instance
+     * @param cmds the command instance
      */
-    public void register(Object command) {
-        LoadedCommand cmd = LoadedCommand.create(command, params);
-        cmd.sendMessage = (channel, message) -> messenger.sendMessage(channel, message, (int) getResponseLifespan(channel.getGuild()));
-        cmd.responses = this.responses;
-        boolean foundParent = false;
-        for (LoadedCommand all : getCommandsRecursive())
-            if (all.hasChild(cmd.getCommandClass()))
-                foundParent = all.registerChild(cmd);
+    public void register(Object... cmds) {
+        for (Object command : cmds) {
+            LoadedCommand cmd = LoadedCommand.create(command, params);
+            cmd.sendMessage = (channel, message) -> messenger.sendMessage(channel, message, (int) getResponseLifespan(channel.getGuild()));
+            cmd.responses = this.responses;
+            boolean foundParent = false;
+            for (LoadedCommand all : getCommandsRecursive())
+                if (all.hasChild(cmd.getCommandClass()))
+                    foundParent = all.registerChild(cmd);
 
-        if (!foundParent)
-            commands.add(cmd);
+            if (!foundParent)
+                commands.add(cmd);
 
-        Set<LoadedCommand> removals = new HashSet<>();
-        for (LoadedCommand c : commands) {
-            for (LoadedCommand all : getCommandsRecursive()) {
-                if (all.getChildClasses().contains(c.getCommandClass())) {
-                    all.registerChild(c);
-                    removals.add(c);
+            Set<LoadedCommand> removals = new HashSet<>();
+            for (LoadedCommand c : commands) {
+                for (LoadedCommand all : getCommandsRecursive()) {
+                    if (all.getChildClasses().contains(c.getCommandClass())) {
+                        all.registerChild(c);
+                        removals.add(c);
+                    }
                 }
             }
+            for (LoadedCommand removal : removals)
+                commands.remove(removal);
         }
-        for (LoadedCommand removal : removals)
-            commands.remove(removal);
     }
 
     /**
