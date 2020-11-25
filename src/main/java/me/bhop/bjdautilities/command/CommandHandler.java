@@ -60,6 +60,9 @@ public abstract class CommandHandler extends ListenerAdapter {
 
         int responseLifetime = (int) getResponseLifespan(guild);
 
+        if (!getAllowedCommandChannels(guild).isEmpty() &&
+                !getAllowedCommandChannels(guild).contains(channel.getIdLong()))
+            return;
         if(event.isWebhookMessage())
             return;
         if (event.getAuthor().isBot())
@@ -73,7 +76,7 @@ public abstract class CommandHandler extends ListenerAdapter {
         ThrowingRunnable run = new ThrowingRunnable(() -> {
             List<String> args = new ArrayList<>(Arrays.asList(event.getMessage().getContentRaw().split(" ")));
             if (args.isEmpty() || (args.size() == 1 && args.get(0).trim().isEmpty())) {
-                messenger.sendMessage(channel, responses.unknownCommand(message, prefix), responseLifetime);
+                sendCommandReply(guild, message, responses.unknownCommand(message, prefix), responseLifetime);
                 return;
             }
 
@@ -86,30 +89,30 @@ public abstract class CommandHandler extends ListenerAdapter {
             if (!opt.isPresent()) {
                 Message m = responses.unknownCommand(message, prefix);
                 if (m != null)
-                    messenger.sendMessage(channel, m, responseLifetime);
+                    sendCommandReply(guild, message, m, responseLifetime);
                 return;
             }
 
             LoadedCommand cmd = opt.get();
             if (!member.hasPermission(cmd.getPermission())) {
-                messenger.sendMessage(channel, responses.noPerms(message, cmd.getPermission()), responseLifetime);
+                sendCommandReply(guild, message, responses.noPerms(message, cmd.getPermission()), responseLifetime);
                 return;
             }
 
             if (cmd.getMinArgs() > args.size()) {
-                messenger.sendMessage(channel, responses.notEnoughArguments(message, cmd.getMinArgs(), args), responseLifetime);
+                sendCommandReply(guild, message, responses.notEnoughArguments(message, cmd.getMinArgs(), args), responseLifetime);
                 return;
             }
 
             CommandResult result = cmd.execute(member, channel, message, label, args);
             if (result == null) {
-                messenger.sendMessage(channel, responses.unknownError(message), responseLifetime);
+                sendCommandReply(guild, message, responses.unknownError(message), responseLifetime);
             } else if (result instanceof CommandResult.NoPermission)
-                messenger.sendMessage(channel, responses.noPerms(message, cmd.getPermission()), responseLifetime);
+                sendCommandReply(guild, message, responses.noPerms(message, cmd.getPermission()), responseLifetime);
             else if (result instanceof CommandResult.InvalidArguments) {
                 if (cmd.hasUsage())
                     cmd.usage(member, channel, message, label, args);
-                else messenger.sendMessage(channel, responses.usage(message, args, cmd.getUsageString()), responseLifetime);
+                else sendCommandReply(guild, message, responses.usage(message, args, cmd.getUsageString()), responseLifetime);
             } else if (!(result instanceof CommandResult.Success))
                 Optional.ofNullable(results.get(result.getClass())).ifPresent(r -> r.accept(result, cmd, message));
         });
@@ -119,9 +122,20 @@ public abstract class CommandHandler extends ListenerAdapter {
         else run.run();
     }
 
+    void sendCommandReply(Guild guild, Message replyTo, Message message, int responseLifetime) {
+        if (isSendResultsAsReplies(guild)) {
+            messenger.sendReplyMessage(replyTo, message, responseLifetime, isTagUserInReplies(guild));
+        } else {
+            messenger.sendMessage(replyTo.getChannel(), message, responseLifetime);
+        }
+    }
+
     protected abstract String getPrefix(Guild guild);
     protected abstract long getCommandLifespan(Guild guild);
     protected abstract long getResponseLifespan(Guild guild);
+    protected abstract List<Long> getAllowedCommandChannels(Guild guild);
+    protected abstract boolean isSendResultsAsReplies(Guild guild);
+    protected abstract boolean isTagUserInReplies(Guild guild);
 
     /**
      * Register a new command given its class.

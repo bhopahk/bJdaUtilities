@@ -23,6 +23,7 @@
  * SOFTWARE.
  */
 
+import me.bhop.bjdautilities.Messenger;
 import me.bhop.bjdautilities.ReactionMenu;
 import me.bhop.bjdautilities.command.CommandHandler;
 import me.bhop.bjdautilities.command.annotation.Command;
@@ -51,14 +52,17 @@ public class Testing {
 
 
     private static JDA jda;
+    private static Messenger messenger;
 
     public static void main(String[] args) throws Exception {
         jda = JDABuilder.createDefault(System.getenv("DISCORD_TOKEN")).build();
+        messenger = new Messenger();
         CommandHandler handler = new CommandHandler.Builder(jda).setGenerateHelp(true).addCustomParameter(new TestObject("I am a test"))
                 .addResultHandler(CustomResults.CoolResult.class, (result, command, message) -> {
             message.getTextChannel().sendMessage("I am a custom handler w/ value of '" + result.value + "'").complete();
         }).guildIndependent().setPrefix(">").build();
         handler.register(new Wahh(), new Wahh2(), new Wahh3(), new Wahh4());
+
         System.out.println(handler.getCommandsRecursive().size());
     }
 
@@ -92,6 +96,7 @@ public class Testing {
     private static class Wahh3 {
         @Execute
         public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject testobj) {
+            Testing.messenger.sendReplyMessage(message, "WOW you suck!", 10, false);
             return CommandResult.success();
         }
     }

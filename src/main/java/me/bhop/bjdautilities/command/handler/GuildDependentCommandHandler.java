@@ -9,16 +9,15 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class GuildDependentCommandHandler extends CommandHandler {
     private final String defaultPrefix;
     private final Map<Long, String> prefixes;
+    private final Map<Long, Boolean> sendResultsAsReplies, tagUsersInReplies;
     private final long defaultCommandLifespan, defaultResponseLifespan;
     private final Map<Long, Long> commandLifespans, responseLifespans;
+    private Map<Long, List<Long>> allowedCommandChannels;
 
     public GuildDependentCommandHandler(JDA jda,
                                         boolean concurrent,
@@ -26,7 +25,7 @@ public class GuildDependentCommandHandler extends CommandHandler {
                                         Set<LoadedCommand> commands,
                                         List<Object> params, Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results,
                                         String defaultPrefix, long defaultCommandLifespan, long defaultResponseLifespan,
-                                        Map<Long, String> prefixes, Map<Long, Long> commandLifespans, Map<Long, Long> responseLifespans, boolean help, int entriesPerPage, boolean helpPermissions) {
+                                        Map<Long, String> prefixes, Map<Long, Long> commandLifespans, Map<Long, Long> responseLifespans, boolean help, int entriesPerPage, boolean helpPermissions, Map<Long, Boolean> sendResultsAsReplies, Map<Long, Boolean> tagUserInReply, Map<Long, List<Long>> allowedCommandChannels) {
         super(jda, concurrent, responses, commands, params, results, help, entriesPerPage, helpPermissions);
         this.defaultPrefix = defaultPrefix;
         this.prefixes = prefixes;
@@ -34,6 +33,26 @@ public class GuildDependentCommandHandler extends CommandHandler {
         this.commandLifespans = commandLifespans;
         this.defaultResponseLifespan = defaultResponseLifespan;
         this.responseLifespans = responseLifespans;
+        this.sendResultsAsReplies = sendResultsAsReplies;
+        this.tagUsersInReplies = tagUserInReply;
+        this.allowedCommandChannels = allowedCommandChannels;
+    }
+
+    public void addAllowedChannel(Guild guild, Long... ids) {
+        this.allowedCommandChannels.put(guild.getIdLong(), Arrays.asList(ids));
+    }
+
+    public void removeAllowedChannel(Guild guild, Long... ids) {
+        this.allowedCommandChannels.remove(guild.getIdLong(), Arrays.asList(ids));
+    }
+
+    public Map<Long, List<Long>> getAllGuildsAllowedCommandChannels() {
+        return this.allowedCommandChannels;
+    }
+
+    @Override
+    protected List<Long> getAllowedCommandChannels(Guild guild) {
+        return this.allowedCommandChannels.getOrDefault(guild.getIdLong(), new ArrayList<>());
     }
 
     public void setPrefix(Guild guild, String prefix) {
@@ -53,6 +72,16 @@ public class GuildDependentCommandHandler extends CommandHandler {
     @Override
     protected long getResponseLifespan(Guild guild) {
         return responseLifespans.getOrDefault(guild.getIdLong(), defaultResponseLifespan);
+    }
+
+    @Override
+    protected boolean isSendResultsAsReplies(Guild guild) {
+        return sendResultsAsReplies.getOrDefault(guild.getIdLong(), true);
+    }
+
+    @Override
+    protected boolean isTagUserInReplies(Guild guild) {
+        return tagUsersInReplies.getOrDefault(guild.getIdLong(), false);
     }
 
     public Map<Long, String> getPrefixes() {
@@ -83,6 +112,8 @@ public class GuildDependentCommandHandler extends CommandHandler {
         private Map<Long, Long> commandLifespans = new HashMap<>();
         private long defaultResponseLifespan = 20;
         private Map<Long, Long> responseLifespans = new HashMap<>();
+        private Map<Long, Boolean> sendResultsAsReplies = new HashMap<>(), tagUsersInReplies = new HashMap<>();
+        private Map<Long, List<Long>> allowedCommandChannels = new HashMap<>();
 
         public Builder(JDA jda, boolean concurrent, CommandResponses responses, Set<LoadedCommand> commands, List<Object> params, Map<Class<? extends CommandResult>, TriConsumer<CommandResult, LoadedCommand, Message>> results, boolean help, int entriesPerPage, boolean helpPermissions) {
             this.jda = jda;
@@ -97,6 +128,17 @@ public class GuildDependentCommandHandler extends CommandHandler {
         }
 
         /**
+         * Adds the ids of channels to a list that gets passed to the executor telling it the channel can be used to run commands!.
+         *
+         * @param guild the guild the channel belongs to!
+         * @param ids the channel's id
+         */
+        public Builder allowCommandsInChannel(Guild guild, Long... ids) {
+            allowedCommandChannels.put(guild.getIdLong(), Arrays.asList(ids));
+            return this;
+        }
+
+        /**
          * Set the default command prefix to be used if there is not a guild specific prefix specified.
          *
          * @param prefix the prefix
@@ -105,6 +147,7 @@ public class GuildDependentCommandHandler extends CommandHandler {
             this.defaultPrefix = prefix;
             return this;
         }
+
 
         public Builder addGuildPrefix(Long guild, String prefix) {
             prefixes.put(guild, prefix);
@@ -145,8 +188,18 @@ public class GuildDependentCommandHandler extends CommandHandler {
             return this;
         }
 
+        public Builder sendResultsAsReplies(Long guild, Boolean resultsAsReplies) {
+            sendResultsAsReplies.put(guild, resultsAsReplies);
+            return this;
+        }
+
+        public Builder tagUsersInReplies(Long guild, Boolean tagUsers) {
+            tagUsersInReplies.put(guild, tagUsers);
+            return this;
+        }
+
         public GuildDependentCommandHandler build() {
-            return new GuildDependentCommandHandler(jda, concurrent, responses, commands, params, results, defaultPrefix, defaultCommandLifespan, defaultResponseLifespan, prefixes, commandLifespans, responseLifespans, help, entriesPerPage, helpPermission);
+            return new GuildDependentCommandHandler(jda, concurrent, responses, commands, params, results, defaultPrefix, defaultCommandLifespan, defaultResponseLifespan, prefixes, commandLifespans, responseLifespans, help, entriesPerPage, helpPermission, sendResultsAsReplies, tagUsersInReplies, allowedCommandChannels);
         }
     }
 }
