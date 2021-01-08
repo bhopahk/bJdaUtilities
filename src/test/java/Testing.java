@@ -78,6 +78,12 @@ public class Testing {
                         menu.data.put("count", count);
                         menu.getMessage().setContent("Clicked the benu " + count + " times!");
                     })
+                    .onClick("\u274C", ReactionMenu::destroy)
+                    .onClick((emote, menu, user) -> {
+                        if (emote.equals("hortwynd")) {
+                            menu.getMessage().setContent(user.getAsMention() + " says \"Horton hears a who ?!\"");
+                        }
+                    })
                     .buildAndDisplay(channel);
 
             return CommandResult.success();
