@@ -272,13 +272,15 @@ public abstract class ReactionMenu extends ListenerAdapter {
                 }
             }
 
-            super.anyAddActions.forEach(anyAction -> {
-                try {
-                    anyAction.accept(id, this, event.getUser());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+            if (!super.addActions.containsKey(id) && !super.addActions2.containsKey(id)) {
+                super.anyAddActions.forEach(anyAction -> {
+                    try {
+                        anyAction.accept(id, this, event.getUser());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
 
             try {
                 if (super.removeReactions)
@@ -308,13 +310,15 @@ public abstract class ReactionMenu extends ListenerAdapter {
                     e.printStackTrace();
                 }
             }
-            super.anyRemoveActions.forEach(anyAction -> {
-                try {
-                    anyAction.accept(id, this, event.getUser());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+            if (!super.removeActions.containsKey(id) && !super.removeActions2.containsKey(id)) {
+                super.anyRemoveActions.forEach(anyAction -> {
+                    try {
+                        anyAction.accept(id, this, event.getUser());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
         }
     }
 
@@ -352,13 +356,15 @@ public abstract class ReactionMenu extends ListenerAdapter {
                 }
             }
 
-            super.anyAddActions.forEach(anyAction -> {
-                try {
-                    anyAction.accept(id, this, event.getUser());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+            if (!super.addActions.containsKey(id) && !super.addActions2.containsKey(id)) {
+                super.anyAddActions.forEach(anyAction -> {
+                    try {
+                        anyAction.accept(id, this, event.getUser());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
         }
 
         @Override
@@ -382,6 +388,16 @@ public abstract class ReactionMenu extends ListenerAdapter {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            }
+
+            if (!super.removeActions.containsKey(id) && !super.removeActions2.containsKey(id)) {
+                super.anyRemoveActions.forEach(anyAction -> {
+                    try {
+                        anyAction.accept(id, this, event.getUser());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
             }
         }
 
