@@ -84,6 +84,11 @@ public class Testing {
                             menu.getMessage().setContent(user.getAsMention() + " says \"Horton hears a who ?!\"");
                         }
                     })
+                    .onResponse((msg, menu, user) -> {
+                        if (msg.getContentRaw().equals("Test")) {
+                            msg.reply("Test successful!").complete();
+                        }
+                    })
                     .buildAndDisplay(channel);
 
             return CommandResult.success();

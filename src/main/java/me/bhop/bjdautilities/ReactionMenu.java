@@ -32,12 +32,15 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionRemoveEvent;
+import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.priv.react.PrivateMessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.priv.react.PrivateMessageReactionRemoveEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -57,6 +60,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
     private EditableMessage message = null;
     private final MessageBuilder unsentMessage;
     private final List<String> startingReactions;
+    private final List<TriConsumer<Message, ReactionMenu, User>> responseActions;
     private final List<Consumer<ReactionMenu>> openEvents;
     private final List<Consumer<ReactionMenu>> closeEvents;
     private final List<TriConsumer<String, ReactionMenu, User>> anyAddActions;
@@ -76,6 +80,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
             JDA jda,
             MessageBuilder unsentMessage,
             List<String> startingReactions,
+            List<TriConsumer<Message, ReactionMenu, User>> responseActions,
             List<Consumer<ReactionMenu>> openEvents,
             List<Consumer<ReactionMenu>> closeEvents,
             List<TriConsumer<String, ReactionMenu, User>> anyAddActions,
@@ -89,6 +94,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         this.jda = jda;
         this.unsentMessage = unsentMessage;
         this.startingReactions = startingReactions;
+        this.responseActions = responseActions;
         this.openEvents = openEvents;
         this.closeEvents = closeEvents;
         this.anyAddActions = anyAddActions;
@@ -107,6 +113,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
     private ReactionMenu(
             JDA jda,
             Message message,
+            List<TriConsumer<Message, ReactionMenu, User>> responseActions,
             List<Consumer<ReactionMenu>> closeEvents,
             List<TriConsumer<String, ReactionMenu, User>> anyAddActions,
             List<TriConsumer<String, ReactionMenu, User>> anyRemoveActions,
@@ -120,6 +127,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         this.message = EditableMessage.wrap(message);
         this.unsentMessage = null;
         this.startingReactions = new ArrayList<>();
+        this.responseActions = responseActions;
         this.openEvents = new ArrayList<>();
         this.closeEvents = closeEvents;
         this.anyAddActions = anyAddActions;
@@ -240,12 +248,28 @@ public abstract class ReactionMenu extends ListenerAdapter {
     }
 
     public static class GuildReactionMenu extends ReactionMenu {
-        private GuildReactionMenu(JDA jda, MessageBuilder unsentMessage, List<String> startingReactions, List<Consumer<ReactionMenu>> openEvents, List<Consumer<ReactionMenu>> closeEvents, List<TriConsumer<String, ReactionMenu, User>> anyAddActions, List<TriConsumer<String, ReactionMenu, User>> anyRemoveActions, Map<String, Consumer<ReactionMenu>> addActions, Map<String, BiConsumer<ReactionMenu, User>> addActions2, Map<String, Consumer<ReactionMenu>> removeActions, Map<String, BiConsumer<ReactionMenu, User>> removeActions2, boolean removeReactions) {
-            super(jda, unsentMessage, startingReactions, openEvents, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
+        private GuildReactionMenu(JDA jda, MessageBuilder unsentMessage, List<String> startingReactions, List<TriConsumer<Message, ReactionMenu, User>> responseActions, List<Consumer<ReactionMenu>> openEvents, List<Consumer<ReactionMenu>> closeEvents, List<TriConsumer<String, ReactionMenu, User>> anyAddActions, List<TriConsumer<String, ReactionMenu, User>> anyRemoveActions, Map<String, Consumer<ReactionMenu>> addActions, Map<String, BiConsumer<ReactionMenu, User>> addActions2, Map<String, Consumer<ReactionMenu>> removeActions, Map<String, BiConsumer<ReactionMenu, User>> removeActions2, boolean removeReactions) {
+            super(jda, unsentMessage, startingReactions, responseActions, openEvents, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
         }
 
-        private GuildReactionMenu(JDA jda, Message message, List<Consumer<ReactionMenu>> closeEvents, List<TriConsumer<String, ReactionMenu, User>> anyAddActions, List<TriConsumer<String, ReactionMenu, User>> anyRemoveActions, Map<String, Consumer<ReactionMenu>> addActions, Map<String, BiConsumer<ReactionMenu, User>> addActions2, Map<String, Consumer<ReactionMenu>> removeActions, Map<String, BiConsumer<ReactionMenu, User>> removeActions2, boolean removeReactions) {
-            super(jda, message, closeEvents, anyAddActions, anyRemoveActions,addActions, addActions2, removeActions, removeActions2, removeReactions);
+        private GuildReactionMenu(JDA jda, Message message, List<TriConsumer<Message, ReactionMenu, User>> responseActions, List<Consumer<ReactionMenu>> closeEvents, List<TriConsumer<String, ReactionMenu, User>> anyAddActions, List<TriConsumer<String, ReactionMenu, User>> anyRemoveActions, Map<String, Consumer<ReactionMenu>> addActions, Map<String, BiConsumer<ReactionMenu, User>> addActions2, Map<String, Consumer<ReactionMenu>> removeActions, Map<String, BiConsumer<ReactionMenu, User>> removeActions2, boolean removeReactions) {
+            super(jda, message, responseActions, closeEvents, anyAddActions, anyRemoveActions,addActions, addActions2, removeActions, removeActions2, removeReactions);
+        }
+
+        @Override
+        public void onGuildMessageReceived(GuildMessageReceivedEvent event) {
+            if (event.getAuthor().isBot())
+                return;
+
+            if (!super.responseActions.isEmpty()) {
+                super.responseActions.forEach(response -> {
+                    try {
+                        response.accept(event.getMessage(), this, event.getAuthor());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
         }
 
         @Override
@@ -324,12 +348,26 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
     public static class PrivateMessageReactionMenu extends ReactionMenu {
 
-        private PrivateMessageReactionMenu(JDA jda, MessageBuilder unsentMessage, List<String> startingReactions, List<Consumer<ReactionMenu>> openEvents, List<Consumer<ReactionMenu>> closeEvents, List<TriConsumer<String, ReactionMenu, User>> anyAddActions, List<TriConsumer<String, ReactionMenu, User>> anyRemoveActions, Map<String, Consumer<ReactionMenu>> addActions, Map<String, BiConsumer<ReactionMenu, User>> addActions2, Map<String, Consumer<ReactionMenu>> removeActions, Map<String, BiConsumer<ReactionMenu, User>> removeActions2, boolean removeReactions) {
-            super(jda, unsentMessage, startingReactions, openEvents, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
+        private PrivateMessageReactionMenu(JDA jda, MessageBuilder unsentMessage, List<String> startingReactions, List<TriConsumer<Message, ReactionMenu, User>> responseActions, List<Consumer<ReactionMenu>> openEvents, List<Consumer<ReactionMenu>> closeEvents, List<TriConsumer<String, ReactionMenu, User>> anyAddActions, List<TriConsumer<String, ReactionMenu, User>> anyRemoveActions, Map<String, Consumer<ReactionMenu>> addActions, Map<String, BiConsumer<ReactionMenu, User>> addActions2, Map<String, Consumer<ReactionMenu>> removeActions, Map<String, BiConsumer<ReactionMenu, User>> removeActions2, boolean removeReactions) {
+            super(jda, unsentMessage, startingReactions, responseActions, openEvents, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
         }
 
-        private PrivateMessageReactionMenu(JDA jda, Message message, List<Consumer<ReactionMenu>> closeEvents, List<TriConsumer<String, ReactionMenu, User>> anyAddActions, List<TriConsumer<String, ReactionMenu, User>> anyRemoveActions, Map<String, Consumer<ReactionMenu>> addActions, Map<String, BiConsumer<ReactionMenu, User>> addActions2, Map<String, Consumer<ReactionMenu>> removeActions, Map<String, BiConsumer<ReactionMenu, User>> removeActions2, boolean removeReactions) {
-            super(jda, message, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
+        private PrivateMessageReactionMenu(JDA jda, Message message, List<TriConsumer<Message, ReactionMenu, User>> responseActions, List<Consumer<ReactionMenu>> closeEvents, List<TriConsumer<String, ReactionMenu, User>> anyAddActions, List<TriConsumer<String, ReactionMenu, User>> anyRemoveActions, Map<String, Consumer<ReactionMenu>> addActions, Map<String, BiConsumer<ReactionMenu, User>> addActions2, Map<String, Consumer<ReactionMenu>> removeActions, Map<String, BiConsumer<ReactionMenu, User>> removeActions2, boolean removeReactions) {
+            super(jda, message, responseActions, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
+        }
+
+        @Override
+        public void onPrivateMessageReceived(@NotNull PrivateMessageReceivedEvent event) {
+            if (event.getMessage().equals(getMessage()))
+                return;
+
+            super.responseActions.forEach(response -> {
+                try {
+                    response.accept(event.getMessage(), this, event.getAuthor());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
         }
 
         @Override
@@ -415,6 +453,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         private final JDA jda;
         private final MessageBuilder message = new MessageBuilder();
         private final List<String> startingReactions = new ArrayList<>();
+        private final List<TriConsumer<Message, ReactionMenu, User>> responseActions = new ArrayList<>();
         private final List<Consumer<ReactionMenu>> openEvents = new ArrayList<>();
         private final List<Consumer<ReactionMenu>> closeEvents = new ArrayList<>();
         private final List<TriConsumer<String, ReactionMenu, User>> anyAddActions = new ArrayList<>();
@@ -482,6 +521,16 @@ public abstract class ReactionMenu extends ListenerAdapter {
         public Builder setStartingReactions(String... names) {
             startingReactions.clear();
             startingReactions.addAll(Arrays.asList(names));
+            return this;
+        }
+
+        /**
+         * Add a listener for when the menu gets a message reply.
+         *
+         * @param action the action to be called on response
+         */
+        public Builder onResponse(TriConsumer<Message, ReactionMenu, User> action) {
+            responseActions.add(action);
             return this;
         }
 
@@ -591,7 +640,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
          * @return the compiled menu
          */
         public ReactionMenu build() {
-            ReactionMenu menu = new GuildReactionMenu(jda, message, startingReactions, openEvents, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
+            ReactionMenu menu = new GuildReactionMenu(jda, message, startingReactions, responseActions, openEvents, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
             jda.addEventListener(menu);
             return menu;
         }
@@ -614,7 +663,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
          * @return the compiled menu
          */
         public ReactionMenu buildForPrivateMessage() {
-            ReactionMenu menu = new PrivateMessageReactionMenu(jda, message, startingReactions, openEvents, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
+            ReactionMenu menu = new PrivateMessageReactionMenu(jda, message, startingReactions, responseActions, openEvents, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
             jda.addEventListener(menu);
             return menu;
         }
@@ -638,6 +687,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
     public static class Import {
         private final JDA jda;
         private final Message message;
+        private final List<TriConsumer<Message, ReactionMenu, User>> responseActions = new ArrayList<>();
         private final List<Consumer<ReactionMenu>> closeEvents = new ArrayList<>();
         private final List<TriConsumer<String, ReactionMenu, User>> anyAddActions = new ArrayList<>();
         private final List<TriConsumer<String, ReactionMenu, User>> anyRemoveActions = new ArrayList<>();
@@ -655,6 +705,16 @@ public abstract class ReactionMenu extends ListenerAdapter {
         public Import(Message message) {
             this.jda = message.getJDA();
             this.message = message;
+        }
+
+        /**
+         * Add a listener for when the menu gets a message reply.
+         *
+         * @param action the action to be called on response
+         */
+        public Import onResponse(TriConsumer<Message, ReactionMenu, User> action) {
+            responseActions.add(action);
+            return this;
         }
 
         /**
@@ -751,7 +811,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
          * @return the compiled menu
          */
         public ReactionMenu build() {
-            ReactionMenu menu = new GuildReactionMenu(jda, message, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
+            ReactionMenu menu = new GuildReactionMenu(jda, message, responseActions, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
             jda.addEventListener(menu);
             return menu;
         }
@@ -762,7 +822,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
          * @return the compiled menu
          */
         public ReactionMenu buildForPrivateMessage() {
-            ReactionMenu menu = new PrivateMessageReactionMenu(jda, message, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
+            ReactionMenu menu = new PrivateMessageReactionMenu(jda, message, responseActions, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
             jda.addEventListener(menu);
             return menu;
         }
