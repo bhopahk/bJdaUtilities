@@ -258,7 +258,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
         @Override
         public void onGuildMessageReceived(GuildMessageReceivedEvent event) {
-            if (event.getAuthor().isBot() || !event.getChannel().equals(getMessage().getTextChannel()))
+            if (event.getAuthor().isBot() || getMessage() != null && !event.getChannel().equals(getMessage().getTextChannel()))
                 return;
 
             if (!super.responseActions.isEmpty()) {
@@ -358,7 +358,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
         @Override
         public void onPrivateMessageReceived(@NotNull PrivateMessageReceivedEvent event) {
-            if (event.getMessage().equals(getMessage()))
+            if (event.getMessage().equals(getMessage()) || getMessage() != null && !event.getChannel().equals(getMessage().getPrivateChannel()))
                 return;
 
             super.responseActions.forEach(response -> {
