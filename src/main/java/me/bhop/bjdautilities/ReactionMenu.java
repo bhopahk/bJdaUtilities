@@ -150,13 +150,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         if (message != null)
             throw new IllegalStateException("This menu has already been displayed!");
         message = EditableMessage.wrap(channel.sendMessage(unsentMessage.build()).complete());
-        for (String emoteId : startingReactions) {
-            if (emoteId.charAt(0) > 128)
-                message.addReaction(emoteId).queue();
-            else
-                message.addReaction(message.getGuild().getEmotesByName(emoteId, true).get(0)).queue();
-
-        }
+        addStartingReactions(message);
         openEvents.forEach(action -> {
             try {
                 action.accept(this);
@@ -164,6 +158,36 @@ public abstract class ReactionMenu extends ListenerAdapter {
                 e.printStackTrace();
             }
         });
+    }
+
+    /**
+     * Display this menu by replacing a current message. It must not have been displayed yet.
+     *
+     * @param original the message to edit and create the menu on
+     * @throws IllegalStateException if the menu has already been displayed
+     */
+    public void display(Message original) {
+        if (message != null)
+            throw new IllegalStateException("This menu has already been displayed!");
+        message = EditableMessage.wrap(message.editMessage(unsentMessage.build()).complete());
+        addStartingReactions(message);
+        openEvents.forEach(action -> {
+            try {
+                action.accept(this);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private void addStartingReactions(Message message) {
+        for (String emoteId : startingReactions) {
+            if (emoteId.charAt(0) > 128)
+                message.addReaction(emoteId).queue();
+            else
+                message.addReaction(message.getGuild().getEmotesByName(emoteId, true).get(0)).queue();
+
+        }
     }
 
     /**
@@ -654,6 +678,18 @@ public abstract class ReactionMenu extends ListenerAdapter {
         public ReactionMenu buildAndDisplay(MessageChannel channel) {
             ReactionMenu menu = build();
             menu.display(channel);
+            return menu;
+        }
+
+        /**
+         * Build the {@link ReactionMenu} and display it immediately
+         *
+         * @param original the message to edit and display it on
+         * @return the compiled menu
+         */
+        public ReactionMenu buildAndDisplay(Message original) {
+            ReactionMenu menu = build();
+            menu.display(original);
             return menu;
         }
 
