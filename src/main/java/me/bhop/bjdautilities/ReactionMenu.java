@@ -262,6 +262,18 @@ public abstract class ReactionMenu extends ListenerAdapter {
         removeActions2.clear();
     }
 
+    public void clearAllListeners() {
+        responseActions.clear();
+        openEvents.clear();
+        closeEvents.clear();
+        anyAddActions.clear();
+        anyRemoveActions.clear();
+        addActions.clear();
+        addActions2.clear();
+        removeActions.clear();
+        removeActions2.clear();
+    }
+
     /**
      * Get the underlying {@link EditableMessage} for this menu.
      *
