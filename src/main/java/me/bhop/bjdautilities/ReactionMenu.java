@@ -301,7 +301,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
                 for (TriConsumer<Message, ReactionMenu, User> response : super.responseActions) {
                     if (response != null) {
                         try {
-                            if (event.getMessage() != null || getMessage() != null)
+                            if (event.getMessage() != null && getMessage() != null)
                                 response.accept(event.getMessage(), this, event.getAuthor());
                         } catch (Exception e) {
                             e.printStackTrace();
