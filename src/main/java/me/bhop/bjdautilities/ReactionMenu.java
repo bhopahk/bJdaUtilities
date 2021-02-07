@@ -298,13 +298,15 @@ public abstract class ReactionMenu extends ListenerAdapter {
                 return;
 
             if (!super.responseActions.isEmpty()) {
-                super.responseActions.forEach(response -> {
-                    try {
-                        response.accept(event.getMessage(), this, event.getAuthor());
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                for (TriConsumer<Message, ReactionMenu, User> response : super.responseActions)
+                    if (response != null) {
+                        try {
+                            response.accept(event.getMessage(), this, event.getAuthor());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
-                });
+                }
             }
         }
 
