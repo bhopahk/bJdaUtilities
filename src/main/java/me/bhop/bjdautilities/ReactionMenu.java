@@ -50,9 +50,9 @@ import java.util.function.Consumer;
 
 /**
  * A chat menu created from reactions (emotes).
- *
+ * <p>
  * This can be used for fetching a user decision given a number of choices, or simply for something like a refreshable and persistent message.
- *
+ * <p>
  * This class has no functionality, a {@link GuildReactionMenu} or {@link PrivateMessageReactionMenu} should be used instead.
  */
 public abstract class ReactionMenu extends ListenerAdapter {
@@ -221,7 +221,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
     /**
      * Add an emote to the menu after creation.
-     *
+     * <p>
      * This should be either the unicode of the emote (non escaped) or the string name (without :) for a server emote.
      *
      * @param emoteId the emote name
@@ -289,7 +289,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         }
 
         private GuildReactionMenu(JDA jda, Message message, List<TriConsumer<Message, ReactionMenu, User>> responseActions, List<Consumer<ReactionMenu>> closeEvents, List<TriConsumer<String, ReactionMenu, User>> anyAddActions, List<TriConsumer<String, ReactionMenu, User>> anyRemoveActions, Map<String, Consumer<ReactionMenu>> addActions, Map<String, BiConsumer<ReactionMenu, User>> addActions2, Map<String, Consumer<ReactionMenu>> removeActions, Map<String, BiConsumer<ReactionMenu, User>> removeActions2, boolean removeReactions) {
-            super(jda, message, responseActions, closeEvents, anyAddActions, anyRemoveActions,addActions, addActions2, removeActions, removeActions2, removeReactions);
+            super(jda, message, responseActions, closeEvents, anyAddActions, anyRemoveActions, addActions, addActions2, removeActions, removeActions2, removeReactions);
         }
 
         @Override
@@ -301,7 +301,8 @@ public abstract class ReactionMenu extends ListenerAdapter {
                 for (TriConsumer<Message, ReactionMenu, User> response : super.responseActions) {
                     if (response != null) {
                         try {
-                            response.accept(event.getMessage(), this, event.getAuthor());
+                            if (event.getMessage() != null)
+                                response.accept(event.getMessage(), this, event.getAuthor());
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -347,7 +348,8 @@ public abstract class ReactionMenu extends ListenerAdapter {
             try {
                 if (super.removeReactions)
                     event.getReaction().removeReaction(event.getUser()).complete();
-            } catch (ErrorResponseException ignored) { }
+            } catch (ErrorResponseException ignored) {
+            }
         }
 
         @Override
@@ -478,10 +480,12 @@ public abstract class ReactionMenu extends ListenerAdapter {
         }
 
         @Override
-        public void removeReaction(String name) { }
+        public void removeReaction(String name) {
+        }
 
         @Override
-        public void removeReaction(String name, User userId) { }
+        public void removeReaction(String name, User userId) {
+        }
     }
 
     /**
@@ -594,10 +598,10 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
         /**
          * Add a click listener for an emote.
-         *
+         * <p>
          * This will automatically add the emote to the starting emote list.
          *
-         * @param name the emote name
+         * @param name   the emote name
          * @param action the action to be called when the emote is clicked
          */
         public Builder onClick(String name, Consumer<ReactionMenu> action) {
@@ -608,10 +612,10 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
         /**
          * Add a click listener for an emote. This listener, however, supplies both the menu and the {@link User} who added the reaction.
-         *
+         * <p>
          * This will automatically add the emote to the starting emote list.
          *
-         * @param name the emote name
+         * @param name   the emote name
          * @param action the action to be called when the emote is clicked
          */
         public Builder onClick(String name, BiConsumer<ReactionMenu, User> action) {
@@ -633,7 +637,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         /**
          * Add a remove listener for an emote.
          *
-         * @param name the emote name
+         * @param name   the emote name
          * @param action the action to be called when the emote is removed
          */
         public Builder onRemove(String name, Consumer<ReactionMenu> action) {
@@ -644,7 +648,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         /**
          * Add a remove listener for an emote. This listener, however, supplies both the menu and the {@link User} who added the reaction.
          *
-         * @param name the emote name
+         * @param name   the emote name
          * @param action the action to be called when the emote is removed
          */
         public Builder onRemove(String name, BiConsumer<ReactionMenu, User> action) {
@@ -779,10 +783,10 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
         /**
          * Add a click listener for an emote.
-         *
+         * <p>
          * This will automatically add the emote to the starting emote list.
          *
-         * @param name the emote name
+         * @param name   the emote name
          * @param action the action to be called when the emote is clicked
          */
         public Import onClick(String name, Consumer<ReactionMenu> action) {
@@ -792,10 +796,10 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
         /**
          * Add a click listener for an emote. This listener, however, supplies both the menu and the {@link User} who added the reaction.
-         *
+         * <p>
          * This will automatically add the emote to the starting emote list.
          *
-         * @param name the emote name
+         * @param name   the emote name
          * @param action the action to be called when the emote is clicked
          */
         public Import onClick(String name, BiConsumer<ReactionMenu, User> action) {
@@ -816,7 +820,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         /**
          * Add a remove listener for an emote.
          *
-         * @param name the emote name
+         * @param name   the emote name
          * @param action the action to be called when the emote is removed
          */
         public Import onRemove(String name, Consumer<ReactionMenu> action) {
@@ -827,7 +831,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         /**
          * Add a remove listener for an emote. This listener, however, supplies both the menu and the {@link User} who added the reaction.
          *
-         * @param name the emote name
+         * @param name   the emote name
          * @param action the action to be called when the emote is removed
          */
         public Import onRemove(String name, BiConsumer<ReactionMenu, User> action) {
