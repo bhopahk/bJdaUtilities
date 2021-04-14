@@ -355,7 +355,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         @Override
         @SuppressWarnings("Duplicates")
         public void onGuildMessageReactionRemove(GuildMessageReactionRemoveEvent event) {
-            if (super.message == null || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
+            if (super.message == null || super.message.getIdLong() != event.getMessageIdLong() || event.retrieveUser().complete().isBot())
                 return;
             String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
             Consumer<ReactionMenu> action = super.removeActions.get(id);
