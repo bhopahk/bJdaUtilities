@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'me.bhop'
-project.version = '1.2.0'
+project.version = '1.2.1'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -12,10 +12,14 @@ targetCompatibility = 1.8
 repositories {
     mavenCentral()
     jcenter()
+    maven {
+        name 'm2-dv8tion'
+        url 'https://m2.dv8tion.net/releases'
+    }
 }
 
 dependencies {
-    compile 'net.dv8tion:JDA:4.2.0_222'
+    compile "net.dv8tion:JDA:4.2.1_253"
 }
 
 publishing {

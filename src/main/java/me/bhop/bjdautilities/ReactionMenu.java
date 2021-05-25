@@ -317,6 +317,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
             if (super.message == null || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
                 return;
             String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
+            User user = event.retrieveUser().complete();
             Consumer<ReactionMenu> action = super.addActions.get(id);
             if (action != null) {
                 try {
@@ -329,7 +330,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
             BiConsumer<ReactionMenu, User> action2 = super.addActions2.get(id);
             if (action2 != null) {
                 try {
-                    action2.accept(this, event.getUser());
+                    action2.accept(this, user);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -338,7 +339,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
             if (!super.addActions.containsKey(id) && !super.addActions2.containsKey(id)) {
                 super.anyAddActions.forEach(anyAction -> {
                     try {
-                        anyAction.accept(id, this, event.getUser());
+                        anyAction.accept(id, this, user);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -347,7 +348,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
             try {
                 if (super.removeReactions)
-                    event.getReaction().removeReaction(event.getUser()).complete();
+                    event.getReaction().removeReaction(user).complete();
             } catch (ErrorResponseException ignored) {
             }
         }
@@ -358,6 +359,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
             if (super.message == null || super.message.getIdLong() != event.getMessageIdLong() || event.retrieveUser().complete().isBot())
                 return;
             String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
+            User user = event.retrieveUser().complete();
             Consumer<ReactionMenu> action = super.removeActions.get(id);
             if (action != null) {
                 try {
@@ -369,7 +371,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
             BiConsumer<ReactionMenu, User> action2 = super.removeActions2.get(id);
             if (action2 != null) {
                 try {
-                    action2.accept(this, event.getUser());
+                    action2.accept(this, user);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -377,7 +379,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
             if (!super.removeActions.containsKey(id) && !super.removeActions2.containsKey(id)) {
                 super.anyRemoveActions.forEach(anyAction -> {
                     try {
-                        anyAction.accept(id, this, event.getUser());
+                        anyAction.accept(id, this, user);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
