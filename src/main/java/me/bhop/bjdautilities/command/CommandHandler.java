@@ -10,11 +10,8 @@ import me.bhop.bjdautilities.command.result.CommandResult;
 import me.bhop.bjdautilities.util.ThrowingRunnable;
 import me.bhop.bjdautilities.util.TriConsumer;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import java.util.*;
@@ -52,11 +49,14 @@ public abstract class CommandHandler extends ListenerAdapter {
     }
 
     @Override
-    public void onGuildMessageReceived(final GuildMessageReceivedEvent event) {
+    public void onMessageReceived(final MessageReceivedEvent event) {
+        if (!event.isFromGuild())
+            return;
+
         Guild guild = event.getGuild();
         Message message = event.getMessage();
         Member member = event.getMember();
-        TextChannel channel = event.getChannel();
+        TextChannel channel = (TextChannel) event.getChannel();
 
         int responseLifetime = (int) getResponseLifespan(guild);
 

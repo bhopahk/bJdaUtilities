@@ -3,6 +3,8 @@ package me.bhop.bjdautilities;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.LayoutComponent;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.requests.restaction.AuditableRestAction;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
@@ -14,6 +16,7 @@ import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Formatter;
 import java.util.List;
@@ -52,7 +55,7 @@ public class EditableMessage implements Message {
      * @param content the new content
      */
     public void setContent(MessageEmbed content) {
-        delegate.editMessage(content).queue();
+        delegate.editMessageEmbeds(content).queue();
     }
 
     /**
@@ -256,6 +259,12 @@ public class EditableMessage implements Message {
         return delegate.getChannel();
     }
 
+    @NotNull
+    @Override
+    public GuildMessageChannel getGuildChannel() {
+        return delegate.getGuildChannel();
+    }
+
     @Override
     @Nonnull
     public PrivateChannel getPrivateChannel() {
@@ -266,6 +275,12 @@ public class EditableMessage implements Message {
     @Nonnull
     public TextChannel getTextChannel() {
         return delegate.getTextChannel();
+    }
+
+    @NotNull
+    @Override
+    public NewsChannel getNewsChannel() {
+        return delegate.getNewsChannel();
     }
 
     @Override
@@ -292,6 +307,12 @@ public class EditableMessage implements Message {
         return delegate.getEmbeds();
     }
 
+    @NotNull
+    @Override
+    public List<ActionRow> getActionRows() {
+        return delegate.getActionRows();
+    }
+
     @Override
     @Nonnull
     public List<Emote> getEmotes() {
@@ -308,6 +329,12 @@ public class EditableMessage implements Message {
     @Nonnull
     public List<MessageReaction> getReactions() {
         return delegate.getReactions();
+    }
+
+    @NotNull
+    @Override
+    public List<MessageSticker> getStickers() {
+        return delegate.getStickers();
     }
 
     @Override
@@ -328,13 +355,17 @@ public class EditableMessage implements Message {
         return delegate.editMessage(newContent);
     }
 
+    @NotNull
     @Override
-    @CheckReturnValue
-    @Nonnull
-    public MessageAction editMessage(@NotNull MessageEmbed newContent) {
-        return delegate.editMessage(newContent);
+    public MessageAction editMessageEmbeds(@NotNull Collection<? extends MessageEmbed> embeds) {
+        return delegate.editMessageEmbeds(embeds);
     }
 
+    @NotNull
+    @Override
+    public MessageAction editMessageComponents(@NotNull Collection<? extends LayoutComponent> components) {
+        return delegate.editMessageComponents(components);
+    }
     @Override
     @CheckReturnValue
     @Nonnull
@@ -461,21 +492,21 @@ public class EditableMessage implements Message {
     @Override
     @CheckReturnValue
     @Nullable
-    public MessageReaction.ReactionEmote getReactionByUnicode(@NotNull String unicode) {
+    public MessageReaction getReactionByUnicode(@NotNull String unicode) {
         return delegate.getReactionByUnicode(unicode);
     }
 
     @Override
     @CheckReturnValue
     @Nullable
-    public MessageReaction.ReactionEmote getReactionById(@NotNull String id) {
+    public MessageReaction getReactionById(@NotNull String id) {
         return delegate.getReactionById(id);
     }
 
     @Override
     @CheckReturnValue
     @Nullable
-    public MessageReaction.ReactionEmote getReactionById(long id) {
+    public MessageReaction getReactionById(long id) {
         return delegate.getReactionById(id);
     }
 
@@ -505,9 +536,36 @@ public class EditableMessage implements Message {
     }
 
     @Override
+    public long getFlagsRaw() {
+        return delegate.getFlagsRaw();
+    }
+
+    @Override
+    public boolean isEphemeral() {
+        return delegate.isEphemeral();
+    }
+
+    @Override
     @Nonnull
     public MessageType getType() {
         return delegate.getType();
+    }
+
+    @org.jetbrains.annotations.Nullable
+    @Override
+    public Interaction getInteraction() {
+        return delegate.getInteraction();
+    }
+
+    @Override
+    public RestAction<ThreadChannel> createThreadChannel(String name) {
+        return delegate.createThreadChannel(name);
+    }
+
+    @org.jetbrains.annotations.Nullable
+    @Override
+    public MessageReference getMessageReference() {
+        return delegate.getMessageReference();
     }
 
     @Override

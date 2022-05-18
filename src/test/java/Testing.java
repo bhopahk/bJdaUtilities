@@ -24,7 +24,7 @@
  */
 
 import me.bhop.bjdautilities.Messenger;
-import me.bhop.bjdautilities.ReactionMenu;
+import me.bhop.bjdautilities.menu.ReactionMenu;
 import me.bhop.bjdautilities.command.CommandHandler;
 import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.annotation.Execute;

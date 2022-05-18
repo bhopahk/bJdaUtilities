@@ -137,7 +137,7 @@ public class Messenger {
      * @return the sent message
      */
     public EditableMessage sendEmbed(MessageChannel channel, MessageEmbed embed, int lifetime) {
-        return sendMessage(channel, new MessageBuilder().setEmbed(embed).build(), lifetime);
+        return sendMessage(channel, new MessageBuilder().setEmbeds(embed).build(), lifetime);
     }
 
     /**
@@ -150,7 +150,7 @@ public class Messenger {
      * @return the sent message
      */
     public EditableMessage sendReplyEmbed(Message replyTo, MessageEmbed embed, int lifetime, boolean tagUser) {
-        return sendReplyMessage(replyTo, new MessageBuilder().setEmbed(embed).build(), lifetime, tagUser);
+        return sendReplyMessage(replyTo, new MessageBuilder().setEmbeds(embed).build(), lifetime, tagUser);
     }
 
     /**
@@ -187,7 +187,7 @@ public class Messenger {
      * @param onRemove the deletion callback
      */
     public void sendEmbed(MessageChannel channel, MessageEmbed embed, int lifetime, Consumer<MessageChannel> onRemove) {
-        sendMessage(channel, new MessageBuilder().setEmbed(embed).build(), lifetime, onRemove);
+        sendMessage(channel, new MessageBuilder().setEmbeds(embed).build(), lifetime, onRemove);
     }
 
     /**
@@ -200,7 +200,7 @@ public class Messenger {
      * @param onRemove the deletion callback
      */
     public void sendReplyEmbed(Message replyTo, MessageEmbed embed, int lifetime, boolean tagUser, Consumer<Message> onRemove) {
-        sendReplyMessage(replyTo, new MessageBuilder().setEmbed(embed).build(), lifetime, tagUser, onRemove);
+        sendReplyMessage(replyTo, new MessageBuilder().setEmbeds(embed).build(), lifetime, tagUser, onRemove);
     }
 
     /**

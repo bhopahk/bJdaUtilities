@@ -25,7 +25,6 @@
 
 package me.bhop.bjdautilities.command.provided;
 
-import me.bhop.bjdautilities.ReactionMenu;
 import me.bhop.bjdautilities.command.LoadedCommand;
 import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.annotation.Execute;
@@ -40,7 +39,6 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.awt.*;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;

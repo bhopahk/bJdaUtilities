@@ -23,21 +23,16 @@
  * SOFTWARE.
  */
 
-package me.bhop.bjdautilities;
+package me.bhop.bjdautilities.menu;
 
+import me.bhop.bjdautilities.EditableMessage;
 import me.bhop.bjdautilities.util.TriConsumer;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionAddEvent;
-import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionRemoveEvent;
-import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.priv.react.PrivateMessageReactionAddEvent;
-import net.dv8tion.jda.api.events.message.priv.react.PrivateMessageReactionRemoveEvent;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
+import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
@@ -293,8 +288,8 @@ public abstract class ReactionMenu extends ListenerAdapter {
         }
 
         @Override
-        public void onGuildMessageReceived(GuildMessageReceivedEvent event) {
-            if (event.getAuthor().isBot() || getMessage() != null && !event.getChannel().equals(getMessage().getTextChannel()))
+        public void onMessageReceived(MessageReceivedEvent event) {
+            if (event.getAuthor().isBot() || !getMessage().isFromGuild() || getMessage() != null && !event.getChannel().equals(getMessage().getTextChannel()))
                 return;
 
             if (!super.responseActions.isEmpty()) {
@@ -313,8 +308,8 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
         @Override
         @SuppressWarnings("Duplicates")
-        public void onGuildMessageReactionAdd(GuildMessageReactionAddEvent event) {
-            if (super.message == null || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
+        public void onMessageReactionAdd(MessageReactionAddEvent event) {
+            if (super.message == null || !getMessage().isFromGuild() || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
                 return;
             String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
             User user = event.retrieveUser().complete();
@@ -355,8 +350,8 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
         @Override
         @SuppressWarnings("Duplicates")
-        public void onGuildMessageReactionRemove(GuildMessageReactionRemoveEvent event) {
-            if (super.message == null || super.message.getIdLong() != event.getMessageIdLong() || event.retrieveUser().complete().isBot())
+        public void onMessageReactionRemove(MessageReactionRemoveEvent event) {
+            if (super.message == null || !getMessage().isFromGuild() || super.message.getIdLong() != event.getMessageIdLong() || event.retrieveUser().complete().isBot())
                 return;
             String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
             User user = event.retrieveUser().complete();
@@ -399,8 +394,8 @@ public abstract class ReactionMenu extends ListenerAdapter {
         }
 
         @Override
-        public void onPrivateMessageReceived(@NotNull PrivateMessageReceivedEvent event) {
-            if (event.getMessage().equals(getMessage()) || getMessage() != null && !event.getChannel().equals(getMessage().getPrivateChannel()))
+        public void onMessageReceived(@NotNull MessageReceivedEvent event) {
+            if (event.getMessage().equals(getMessage()) || !event.isFromType(ChannelType.PRIVATE) || getMessage() != null && !event.getChannel().equals(getMessage().getPrivateChannel()))
                 return;
 
             super.responseActions.forEach(response -> {
@@ -414,8 +409,8 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
         @Override
         @SuppressWarnings("Duplicates")
-        public void onPrivateMessageReactionAdd(PrivateMessageReactionAddEvent event) {
-            if (super.message == null || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
+        public void onMessageReactionAdd(MessageReactionAddEvent event) {
+            if (super.message == null || !event.isFromType(ChannelType.PRIVATE) || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
                 return;
             String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
             Consumer<ReactionMenu> action = super.addActions.get(id);
@@ -449,8 +444,8 @@ public abstract class ReactionMenu extends ListenerAdapter {
 
         @Override
         @SuppressWarnings("Duplicates")
-        public void onPrivateMessageReactionRemove(PrivateMessageReactionRemoveEvent event) {
-            if (super.message == null || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
+        public void onMessageReactionRemove(MessageReactionRemoveEvent event) {
+            if (super.message == null || !event.isFromType(ChannelType.PRIVATE) || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
                 return;
             String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
             Consumer<ReactionMenu> action = super.removeActions.get(id);
@@ -533,7 +528,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
          * @param embed the starting content
          */
         public Builder setEmbed(MessageEmbed embed) {
-            message.setEmbed(embed);
+            message.setEmbeds(embed);
             return this;
         }
 
