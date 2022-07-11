@@ -30,6 +30,7 @@ import me.bhop.bjdautilities.util.TriConsumer;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent;
@@ -178,9 +179,9 @@ public abstract class ReactionMenu extends ListenerAdapter {
     private void addStartingReactions(Message message) {
         for (String emoteId : startingReactions) {
             if (emoteId.charAt(0) > 128)
-                message.addReaction(emoteId).queue();
+                message.addReaction(Emoji.fromFormatted(emoteId)).queue();
             else
-                message.addReaction(message.getGuild().getEmotesByName(emoteId, true).get(0)).queue();
+                message.addReaction(message.getGuild().getEmojisByName(emoteId, true).get(0)).queue();
 
         }
     }
@@ -223,9 +224,9 @@ public abstract class ReactionMenu extends ListenerAdapter {
      */
     public void addReaction(String emoteId) {
         if (emoteId.charAt(0) > 128)
-            message.addReaction(emoteId).queue();
+            message.addReaction(Emoji.fromFormatted(emoteId)).queue();
         else
-            message.addReaction(message.getGuild().getEmotesByName(emoteId, true).get(0)).queue();
+            message.addReaction(message.getGuild().getEmojisByName(emoteId, true).get(0)).queue();
     }
 
     /**
@@ -235,14 +236,14 @@ public abstract class ReactionMenu extends ListenerAdapter {
      */
     public void removeReaction(String name) {
         message.refreshMessage(jda);
-        message.getReactions().stream().filter(reaction -> reaction.getReactionEmote().getName().equals(name)).forEach(reaction -> {
+        message.getReactions().stream().filter(reaction -> reaction.getEmoji().getName().equals(name)).forEach(reaction -> {
             reaction.removeReaction().queue(); //todo may not work with custom emotes
         });
     }
 
     public void removeReaction(String name, User userId) {
         message.refreshMessage(jda);
-        message.getReactions().stream().filter(reaction -> reaction.getReactionEmote().getName().equals(name)).forEach(reaction -> {
+        message.getReactions().stream().filter(reaction -> reaction.getEmoji().getName().equals(name)).forEach(reaction -> {
             reaction.removeReaction(userId).queue(); //todo may not work with custom emotes
         });
     }
@@ -311,7 +312,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         public void onMessageReactionAdd(MessageReactionAddEvent event) {
             if (super.message == null || !getMessage().isFromGuild() || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
                 return;
-            String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
+            String id = event.getEmoji().getFormatted();
             User user = event.retrieveUser().complete();
             Consumer<ReactionMenu> action = super.addActions.get(id);
             if (action != null) {
@@ -353,7 +354,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         public void onMessageReactionRemove(MessageReactionRemoveEvent event) {
             if (super.message == null || !getMessage().isFromGuild() || super.message.getIdLong() != event.getMessageIdLong() || event.retrieveUser().complete().isBot())
                 return;
-            String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
+            String id = event.getEmoji().getFormatted();
             User user = event.retrieveUser().complete();
             Consumer<ReactionMenu> action = super.removeActions.get(id);
             if (action != null) {
@@ -412,7 +413,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         public void onMessageReactionAdd(MessageReactionAddEvent event) {
             if (super.message == null || !event.isFromType(ChannelType.PRIVATE) || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
                 return;
-            String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
+            String id = event.getEmoji().getFormatted();
             Consumer<ReactionMenu> action = super.addActions.get(id);
             if (action != null) {
                 try {
@@ -447,7 +448,7 @@ public abstract class ReactionMenu extends ListenerAdapter {
         public void onMessageReactionRemove(MessageReactionRemoveEvent event) {
             if (super.message == null || !event.isFromType(ChannelType.PRIVATE) || super.message.getIdLong() != event.getMessageIdLong() || event.getUser().isBot())
                 return;
-            String id = event.getReactionEmote().isEmote() ? event.getReactionEmote().getEmote().getName() : event.getReactionEmote().getName();
+            String id = event.getEmoji().getFormatted();
             Consumer<ReactionMenu> action = super.removeActions.get(id);
             if (action != null) {
                 try {

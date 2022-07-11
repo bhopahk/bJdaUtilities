@@ -212,7 +212,7 @@ public class Messenger {
      * @return the sent message
      */
     public EditableMessage sendMessage(MessageChannel channel, Message message, int lifetime) {
-        Message sent = channel.sendMessage(message).complete();
+            Message sent = channel.sendMessage(message).complete();
         if (lifetime != -1)
             murderer.schedule(() -> sent.delete().queue(), lifetime, TimeUnit.SECONDS);
         return EditableMessage.wrap(sent);
@@ -288,7 +288,7 @@ public class Messenger {
 
     public void delete(Message message, int time) {
         if (time == -1)
-            message.delete().complete();
+            message.delete().queue();
         else
             message.delete().queueAfter(time, TimeUnit.SECONDS);
     }
