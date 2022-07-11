@@ -201,9 +201,13 @@ public class LoadedCommand {
                 throw new CommandExecuteException(label, e);
             else
                 throw MethodInvocationException.create(label, execute, varargs, true);
+        } catch (InvocationTargetException target) {
+            target.getTargetException().printStackTrace();
         } catch (Exception e) {
-            throw new CommandExecuteException(label, e);
+            e.printStackTrace();
+            //throw new CommandExecuteException(label, e);
         }
+        return null;
     }
 
     /**

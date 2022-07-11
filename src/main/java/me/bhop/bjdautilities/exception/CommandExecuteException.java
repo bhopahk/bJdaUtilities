@@ -9,6 +9,6 @@ public class CommandExecuteException extends RuntimeException {
      * @param cause the underlying exception
      */
     public CommandExecuteException(String label, Throwable cause) {
-        super("An exception has occurred while executing " + label + ":", cause);
+        super(String.format("An exception has occurred while executing %s: %s", label, cause));
     }
 }

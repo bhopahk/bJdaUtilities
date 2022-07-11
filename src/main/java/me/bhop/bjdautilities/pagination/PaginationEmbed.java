@@ -1,6 +1,6 @@
 package me.bhop.bjdautilities.pagination;
 
-import me.bhop.bjdautilities.ReactionMenu;
+import me.bhop.bjdautilities.menu.ReactionMenu;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageChannel;
 

@@ -23,11 +23,12 @@
  * SOFTWARE.
  */
 
+import me.bhop.bjdautilities.Messenger;
+import me.bhop.bjdautilities.menu.ReactionMenu;
 import me.bhop.bjdautilities.command.CommandHandler;
 import me.bhop.bjdautilities.command.annotation.Command;
 import me.bhop.bjdautilities.command.annotation.Execute;
 import me.bhop.bjdautilities.command.result.CommandResult;
-import net.dv8tion.jda.api.AccountType;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Member;
@@ -51,17 +52,17 @@ public class Testing {
 
 
     private static JDA jda;
+    private static Messenger messenger;
 
     public static void main(String[] args) throws Exception {
-        jda = new JDABuilder(AccountType.BOT).setToken(args[0]).build();
+        jda = JDABuilder.createDefault(System.getenv("DISCORD_TOKEN")).build();
+        messenger = new Messenger();
         CommandHandler handler = new CommandHandler.Builder(jda).setGenerateHelp(true).addCustomParameter(new TestObject("I am a test"))
                 .addResultHandler(CustomResults.CoolResult.class, (result, command, message) -> {
             message.getTextChannel().sendMessage("I am a custom handler w/ value of '" + result.value + "'").complete();
         }).guildIndependent().setPrefix(">").build();
-        handler.register(new Wahh());
-        handler.register(new Wahh2());
-        handler.register(new Wahh3());
-        handler.register(new Wahh4());
+        handler.register(new Wahh(), new Wahh2(), new Wahh3(), new Wahh4());
+
         System.out.println(handler.getCommandsRecursive().size());
     }
 
@@ -70,6 +71,26 @@ public class Testing {
     private static class Wahh {
         @Execute
         public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject testobj) {
+            new ReactionMenu.Builder(jda)
+                    .setMessage("Clicked the benu 0 times!")
+                    .onClick("emoben", menu -> {
+                        int count = (Integer) menu.data.getOrDefault("count", 1) + 1;
+                        menu.data.put("count", count);
+                        menu.getMessage().setContent("Clicked the benu " + count + " times!");
+                    })
+                    .onClick("\u274C", ReactionMenu::destroy)
+                    .onClick((emote, menu, user) -> {
+                        if (emote.equals("hortwynd")) {
+                            menu.getMessage().setContent(user.getAsMention() + " says \"Horton hears a who ?!\"");
+                        }
+                    })
+                    .onResponse((msg, menu, user) -> {
+                        if (msg.getContentRaw().equals("Test")) {
+                            msg.reply("Test successful!").complete();
+                        }
+                    })
+                    .buildAndDisplay(channel);
+
             return CommandResult.success();
         }
     }
@@ -78,7 +99,7 @@ public class Testing {
     private static class Wahh2 {
         @Execute
         public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject testobj) {
-            return CommandResult.success();
+            throw new RuntimeException("Wahhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh");
         }
     }
 
@@ -86,6 +107,7 @@ public class Testing {
     private static class Wahh3 {
         @Execute
         public CommandResult onExecute(Member member, TextChannel channel, Message message, String label, List<String> args, TestObject testobj) {
+            Testing.messenger.sendReplyMessage(message, "WOW you suck!", 10, false);
             return CommandResult.success();
         }
     }

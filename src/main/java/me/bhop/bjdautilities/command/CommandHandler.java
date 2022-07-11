@@ -10,11 +10,8 @@ import me.bhop.bjdautilities.command.result.CommandResult;
 import me.bhop.bjdautilities.util.ThrowingRunnable;
 import me.bhop.bjdautilities.util.TriConsumer;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import java.util.*;
@@ -52,14 +49,22 @@ public abstract class CommandHandler extends ListenerAdapter {
     }
 
     @Override
-    public void onGuildMessageReceived(final GuildMessageReceivedEvent event) {
+    public void onMessageReceived(final MessageReceivedEvent event) {
+        if (!event.isFromGuild())
+            return;
+
         Guild guild = event.getGuild();
         Message message = event.getMessage();
         Member member = event.getMember();
-        TextChannel channel = event.getChannel();
+        TextChannel channel = (TextChannel) event.getChannel();
 
         int responseLifetime = (int) getResponseLifespan(guild);
 
+        if (!getAllowedCommandChannels(guild).isEmpty() &&
+                !getAllowedCommandChannels(guild).contains(channel.getIdLong()))
+            return;
+        if(event.isWebhookMessage())
+            return;
         if (event.getAuthor().isBot())
             return;
         String prefix = getPrefix(guild);
@@ -71,7 +76,7 @@ public abstract class CommandHandler extends ListenerAdapter {
         ThrowingRunnable run = new ThrowingRunnable(() -> {
             List<String> args = new ArrayList<>(Arrays.asList(event.getMessage().getContentRaw().split(" ")));
             if (args.isEmpty() || (args.size() == 1 && args.get(0).trim().isEmpty())) {
-                messenger.sendMessage(channel, responses.unknownCommand(message, prefix), responseLifetime);
+                sendCommandReply(guild, message, responses.unknownCommand(message, prefix), responseLifetime);
                 return;
             }
 
@@ -84,28 +89,30 @@ public abstract class CommandHandler extends ListenerAdapter {
             if (!opt.isPresent()) {
                 Message m = responses.unknownCommand(message, prefix);
                 if (m != null)
-                    messenger.sendMessage(channel, m, responseLifetime);
+                    sendCommandReply(guild, message, m, responseLifetime);
                 return;
             }
 
             LoadedCommand cmd = opt.get();
             if (!member.hasPermission(cmd.getPermission())) {
-                messenger.sendMessage(channel, responses.noPerms(message, cmd.getPermission()), responseLifetime);
+                sendCommandReply(guild, message, responses.noPerms(message, cmd.getPermission()), responseLifetime);
                 return;
             }
 
             if (cmd.getMinArgs() > args.size()) {
-                messenger.sendMessage(channel, responses.notEnoughArguments(message, cmd.getMinArgs(), args), responseLifetime);
+                sendCommandReply(guild, message, responses.notEnoughArguments(message, cmd.getMinArgs(), args), responseLifetime);
                 return;
             }
 
             CommandResult result = cmd.execute(member, channel, message, label, args);
-            if (result instanceof CommandResult.NoPermission)
-                messenger.sendMessage(channel, responses.noPerms(message, cmd.getPermission()), responseLifetime);
+            if (result == null) {
+                sendCommandReply(guild, message, responses.unknownError(message), responseLifetime);
+            } else if (result instanceof CommandResult.NoPermission)
+                sendCommandReply(guild, message, responses.noPerms(message, cmd.getPermission()), responseLifetime);
             else if (result instanceof CommandResult.InvalidArguments) {
                 if (cmd.hasUsage())
                     cmd.usage(member, channel, message, label, args);
-                else messenger.sendMessage(channel, responses.usage(message, args, cmd.getUsageString()), responseLifetime);
+                else sendCommandReply(guild, message, responses.usage(message, args, cmd.getUsageString()), responseLifetime);
             } else if (!(result instanceof CommandResult.Success))
                 Optional.ofNullable(results.get(result.getClass())).ifPresent(r -> r.accept(result, cmd, message));
         });
@@ -115,9 +122,20 @@ public abstract class CommandHandler extends ListenerAdapter {
         else run.run();
     }
 
+    void sendCommandReply(Guild guild, Message replyTo, Message message, int responseLifetime) {
+        if (isSendResultsAsReplies(guild)) {
+            messenger.sendReplyMessage(replyTo, message, responseLifetime, isTagUserInReplies(guild));
+        } else {
+            messenger.sendMessage(replyTo.getChannel(), message, responseLifetime);
+        }
+    }
+
     protected abstract String getPrefix(Guild guild);
     protected abstract long getCommandLifespan(Guild guild);
     protected abstract long getResponseLifespan(Guild guild);
+    protected abstract List<Long> getAllowedCommandChannels(Guild guild);
+    protected abstract boolean isSendResultsAsReplies(Guild guild);
+    protected abstract boolean isTagUserInReplies(Guild guild);
 
     /**
      * Register a new command given its class.
@@ -126,42 +144,46 @@ public abstract class CommandHandler extends ListenerAdapter {
      *
      * @param type the command
      */
-    public void register(Class<?> type) {
-        try {
-            register(type.newInstance());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+    public void register(Class<?>... type) {
+        for (Class<?> clazz : type) {
+            try {
+                register(clazz.newInstance());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
     /**
      * Register a new command given an instance of it.
      *
-     * @param command the command instance
+     * @param cmds the command instance
      */
-    public void register(Object command) {
-        LoadedCommand cmd = LoadedCommand.create(command, params);
-        cmd.sendMessage = (channel, message) -> messenger.sendMessage(channel, message, (int) getResponseLifespan(channel.getGuild()));
-        cmd.responses = this.responses;
-        boolean foundParent = false;
-        for (LoadedCommand all : getCommandsRecursive())
-            if (all.hasChild(cmd.getCommandClass()))
-                foundParent = all.registerChild(cmd);
+    public void register(Object... cmds) {
+        for (Object command : cmds) {
+            LoadedCommand cmd = LoadedCommand.create(command, params);
+            cmd.sendMessage = (channel, message) -> messenger.sendMessage(channel, message, (int) getResponseLifespan(channel.getGuild()));
+            cmd.responses = this.responses;
+            boolean foundParent = false;
+            for (LoadedCommand all : getCommandsRecursive())
+                if (all.hasChild(cmd.getCommandClass()))
+                    foundParent = all.registerChild(cmd);
 
-        if (!foundParent)
-            commands.add(cmd);
+            if (!foundParent)
+                commands.add(cmd);
 
-        Set<LoadedCommand> removals = new HashSet<>();
-        for (LoadedCommand c : commands) {
-            for (LoadedCommand all : getCommandsRecursive()) {
-                if (all.getChildClasses().contains(c.getCommandClass())) {
-                    all.registerChild(c);
-                    removals.add(c);
+            Set<LoadedCommand> removals = new HashSet<>();
+            for (LoadedCommand c : commands) {
+                for (LoadedCommand all : getCommandsRecursive()) {
+                    if (all.getChildClasses().contains(c.getCommandClass())) {
+                        all.registerChild(c);
+                        removals.add(c);
+                    }
                 }
             }
+            for (LoadedCommand removal : removals)
+                commands.remove(removal);
         }
-        for (LoadedCommand removal : removals)
-            commands.remove(removal);
     }
 
     /**

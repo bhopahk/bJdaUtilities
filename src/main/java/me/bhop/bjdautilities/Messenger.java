@@ -69,6 +69,18 @@ public class Messenger {
     }
 
     /**
+     * Send a {@link Message} as a reply to a {@link Message} and forget about it.
+     *
+     * @param replyTo the target message
+     * @param message the message content
+     * @param tagUser whether to tag the author of the message your replying to in the reply
+     * @return the sent message
+     */
+    public EditableMessage sendReplyMessage(Message replyTo, String message, boolean tagUser) {
+        return sendReplyMessage(replyTo, message, -1, tagUser);
+    }
+
+    /**
      * Send a {@link MessageEmbed} to a {@link MessageChannel} and forget about it.
      *
      * @param channel the target channel
@@ -77,6 +89,18 @@ public class Messenger {
      */
     public EditableMessage sendEmbed(MessageChannel channel, MessageEmbed embed) {
         return sendEmbed(channel, embed, -1);
+    }
+
+    /**
+     * Send a {@link MessageEmbed} as a reply to a {@link Message} and forget about it.
+     *
+     * @param replyTo the target message
+     * @param embed the message content
+     * @param tagUser whether to tag the author of the message your replying to in the reply
+     * @return the sent message
+     */
+    public EditableMessage sendReplyEmbed(Message replyTo, MessageEmbed embed, boolean tagUser) {
+        return sendReplyEmbed(replyTo, embed, -1, tagUser);
     }
 
     /**
@@ -92,6 +116,19 @@ public class Messenger {
     }
 
     /**
+     * Send a {@link Message} as a reply to a {@link Message} which will stay for the supplied number of seconds.
+     *
+     * @param replyTo the target message
+     * @param message the message content
+     * @param lifetime the amount of time before deletion, in seconds
+     * @param tagUser whether to tag the author of the message your replying to in the reply
+     * @return the sent message
+     */
+    public EditableMessage sendReplyMessage(Message replyTo, String message, int lifetime, boolean tagUser) {
+        return sendReplyMessage(replyTo, new MessageBuilder().append(message).build(), lifetime, tagUser);
+    }
+
+    /**
      * Send a {@link MessageEmbed} to a {@link MessageChannel} which will stay for the supplied number of seconds.
      *
      * @param channel the target channel
@@ -100,7 +137,20 @@ public class Messenger {
      * @return the sent message
      */
     public EditableMessage sendEmbed(MessageChannel channel, MessageEmbed embed, int lifetime) {
-        return sendMessage(channel, new MessageBuilder().setEmbed(embed).build(), lifetime);
+        return sendMessage(channel, new MessageBuilder().setEmbeds(embed).build(), lifetime);
+    }
+
+    /**
+     * Send a {@link MessageEmbed} as a reply to a {@link Message} which will stay for the supplied number of seconds.
+     *
+     * @param replyTo the target message
+     * @param embed the message content
+     * @param lifetime the amount of time before deletion, in seconds
+     * @param tagUser whether to tag the author of the message your replying to in the reply
+     * @return the sent message
+     */
+    public EditableMessage sendReplyEmbed(Message replyTo, MessageEmbed embed, int lifetime, boolean tagUser) {
+        return sendReplyMessage(replyTo, new MessageBuilder().setEmbeds(embed).build(), lifetime, tagUser);
     }
 
     /**
@@ -116,6 +166,19 @@ public class Messenger {
     }
 
     /**
+     * Send a {@link Message} as a reply to a {@link Message} which will stay for the supplied number of seconds with a callback upon deletion.
+     *
+     * @param replyTo the target message
+     * @param message the message content
+     * @param lifetime the amount of time before deletion, in seconds
+     * @param tagUser whether to tag the author of the message your replying to in the reply
+     * @param onRemove the deletion callback
+     */
+    public void sendReplyMessage(Message replyTo, String message, int lifetime, boolean tagUser, Consumer<Message> onRemove) {
+        sendReplyMessage(replyTo, new MessageBuilder().append(message).build(), lifetime, tagUser, onRemove);
+    }
+
+    /**
      * Send a {@link MessageEmbed} to a {@link MessageChannel} which will stay for the supplied number of seconds with a callback upon deletion.
      *
      * @param channel the target channel
@@ -124,7 +187,20 @@ public class Messenger {
      * @param onRemove the deletion callback
      */
     public void sendEmbed(MessageChannel channel, MessageEmbed embed, int lifetime, Consumer<MessageChannel> onRemove) {
-        sendMessage(channel, new MessageBuilder().setEmbed(embed).build(), lifetime, onRemove);
+        sendMessage(channel, new MessageBuilder().setEmbeds(embed).build(), lifetime, onRemove);
+    }
+
+    /**
+     * Send a {@link MessageEmbed} as a reply to a {@link Message} which will stay for the supplied number of seconds with a callback upon deletion.
+     *
+     * @param replyTo the target message
+     * @param embed the message content
+     * @param lifetime the amount of time before deletion, in seconds
+     * @param tagUser whether to tag the author of the message your replying to in the reply
+     * @param onRemove the deletion callback
+     */
+    public void sendReplyEmbed(Message replyTo, MessageEmbed embed, int lifetime, boolean tagUser, Consumer<Message> onRemove) {
+        sendReplyMessage(replyTo, new MessageBuilder().setEmbeds(embed).build(), lifetime, tagUser, onRemove);
     }
 
     /**
@@ -137,6 +213,22 @@ public class Messenger {
      */
     public EditableMessage sendMessage(MessageChannel channel, Message message, int lifetime) {
             Message sent = channel.sendMessage(message).complete();
+        if (lifetime != -1)
+            murderer.schedule(() -> sent.delete().queue(), lifetime, TimeUnit.SECONDS);
+        return EditableMessage.wrap(sent);
+    }
+
+    /**
+     * Send a compiled {@link Message} to a {@link MessageChannel} which will be removed after the supplied number of seconds.
+     *
+     * @param replyTo the original message to reply to
+     * @param message the message
+     * @param lifetime the amount of time before deletion, in seconds
+     * @param tagUser whether to tag the author of the message your replying to in the reply
+     * @return the sent message
+     */
+    public EditableMessage sendReplyMessage(Message replyTo, Message message, int lifetime, boolean tagUser) {
+        Message sent = replyTo.reply(message).mentionRepliedUser(tagUser).complete();
         if (lifetime != -1)
             murderer.schedule(() -> sent.delete().queue(), lifetime, TimeUnit.SECONDS);
         return EditableMessage.wrap(sent);
@@ -157,6 +249,26 @@ public class Messenger {
                 murderer.schedule(() -> m.delete().queue($ -> {
                     if (onRemove != null)
                         onRemove.accept(channel);
+                }), lifetime, TimeUnit.SECONDS);
+        });
+    }
+
+    /**
+     * Send a compiled {@link Message} as a reply to a{@link Message} which will be removed after the supplied number of seconds with a callback upon deletion.
+     *
+     * @param replyTo the original message to reply to
+     * @param message the message
+     * @param lifetime the amount of time before deletion, in seconds
+     * @param tagUser whether to tag the author of the message your replying to in the reply
+     * @param onRemove the deletion callback
+     */
+    public void sendReplyMessage(Message replyTo, Message message, int lifetime, boolean tagUser, Consumer<Message> onRemove) {
+        replyTo.getChannel().sendTyping().queue();
+        replyTo.reply(message).mentionRepliedUser(tagUser).queue(m -> {
+            if (lifetime != -1)
+                murderer.schedule(() -> m.delete().queue($ -> {
+                    if (onRemove != null)
+                        onRemove.accept(replyTo);
                 }), lifetime, TimeUnit.SECONDS);
         });
     }
