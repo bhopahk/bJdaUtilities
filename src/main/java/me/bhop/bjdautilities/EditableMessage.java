@@ -3,6 +3,10 @@ package me.bhop.bjdautilities;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.entities.emoji.RichCustomEmoji;
+import net.dv8tion.jda.api.entities.sticker.Sticker;
+import net.dv8tion.jda.api.entities.sticker.StickerItem;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.LayoutComponent;
 import net.dv8tion.jda.api.requests.RestAction;
@@ -109,7 +113,7 @@ public class EditableMessage implements Message {
     // Below is all delegate methods...
 
 
-    @Override
+    /*@Override
     @Nonnull
     public List<User> getMentionedUsers() {
         return delegate.getMentionedUsers();
@@ -137,9 +141,9 @@ public class EditableMessage implements Message {
     @Nonnull
     public List<Role> getMentionedRoles() {
         return delegate.getMentionedRoles();
-    }
+    } */
 
-    @Override
+    /*@Override
     @Nonnull
     public Bag<Role> getMentionedRolesBag() {
         return delegate.getMentionedRolesBag();
@@ -171,7 +175,7 @@ public class EditableMessage implements Message {
     @Override
     public boolean mentionsEveryone() {
         return delegate.mentionsEveryone();
-    }
+    } */
 
     @Override
     public boolean isEdited() {
@@ -313,7 +317,7 @@ public class EditableMessage implements Message {
         return delegate.getActionRows();
     }
 
-    @Override
+    /* @Override
     @Nonnull
     public List<Emote> getEmotes() {
         return delegate.getEmotes();
@@ -321,9 +325,9 @@ public class EditableMessage implements Message {
 
     @Override
     @Nonnull
-    public Bag<Emote> getEmotesBag() {
+    public Bag<Emoji> getEmotesBag() {
         return delegate.getEmotesBag();
-    }
+    } */
 
     @Override
     @Nonnull
@@ -333,7 +337,7 @@ public class EditableMessage implements Message {
 
     @NotNull
     @Override
-    public List<MessageSticker> getStickers() {
+    public List<StickerItem> getStickers() {
         return delegate.getStickers();
     }
 
@@ -412,10 +416,16 @@ public class EditableMessage implements Message {
         return delegate.unpin();
     }
 
+    @NotNull
     @Override
+    public RestAction<Void> addReaction(@NotNull Emoji emoji) {
+        return delegate.addReaction(emoji);
+    }
+
+    /* @Override
     @CheckReturnValue
     @Nonnull
-    public RestAction<Void> addReaction(@NotNull Emote emote) {
+    public RestAction<Void> addReaction(@NotNull RichCustomEmoji emote) {
         return delegate.addReaction(emote);
     }
 
@@ -423,8 +433,8 @@ public class EditableMessage implements Message {
     @CheckReturnValue
     @Nonnull
     public RestAction<Void> addReaction(@NotNull String unicode) {
-        return delegate.addReaction(unicode);
-    }
+        return delegate.addReaction(Emoji.fromFormatted(unicode));
+    } */
 
     @Override
     @CheckReturnValue
@@ -433,31 +443,54 @@ public class EditableMessage implements Message {
         return delegate.clearReactions();
     }
 
+    @NotNull
     @Override
+    public RestAction<Void> clearReactions(@NotNull Emoji emoji) {
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public RestAction<Void> removeReaction(@NotNull Emoji emoji) {
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public RestAction<Void> removeReaction(@NotNull Emoji emoji, @NotNull User user) {
+        return delegate.removeReaction(emoji, user);
+    }
+
+    @Override
+    public MessageReaction getReaction(@NotNull Emoji emoji) {
+        return delegate.getReaction(emoji);
+    }
+
+   /*  @Override
     @CheckReturnValue
     @Nonnull
     public RestAction<Void> clearReactions(@NotNull String unicode) {
-        return delegate.clearReactions(unicode);
+        return delegate.clearReactions(Emoji.fromFormatted(unicode));
     }
 
     @Override
     @CheckReturnValue
     @Nonnull
-    public RestAction<Void> clearReactions(@NotNull Emote emote) {
+    public RestAction<Void> clearReactions(@NotNull RichCustomEmoji emote) {
         return delegate.clearReactions(emote);
     }
 
     @Override
     @CheckReturnValue
     @Nonnull
-    public RestAction<Void> removeReaction(@NotNull Emote emote) {
+    public RestAction<Void> removeReaction(@NotNull RichCustomEmoji emote) {
         return delegate.removeReaction(emote);
     }
 
     @Override
     @CheckReturnValue
     @Nonnull
-    public RestAction<Void> removeReaction(@NotNull Emote emote, @NotNull User user) {
+    public RestAction<Void> removeReaction(@NotNull RichCustomEmoji emote, @NotNull User user) {
         return delegate.removeReaction(emote, user);
     }
 
@@ -465,35 +498,35 @@ public class EditableMessage implements Message {
     @CheckReturnValue
     @Nonnull
     public RestAction<Void> removeReaction(@NotNull String unicode) {
-        return delegate.removeReaction(unicode);
+        return delegate.removeReaction(Emoji.fromFormatted(unicode));
     }
 
     @Override
     @CheckReturnValue
     @Nonnull
     public RestAction<Void> removeReaction(@NotNull String unicode, @NotNull User user) {
-        return delegate.removeReaction(unicode, user);
-    }
+        return delegate.removeReaction(Emoji.fromFormatted(unicode), user);
+    } */
 
     @Override
     @CheckReturnValue
     @Nonnull
-    public ReactionPaginationAction retrieveReactionUsers(@NotNull Emote emote) {
-        return delegate.retrieveReactionUsers(emote);
+    public ReactionPaginationAction retrieveReactionUsers(@NotNull Emoji emoji) {
+        return delegate.retrieveReactionUsers(emoji);
     }
 
-    @Override
+    /* @Override
     @CheckReturnValue
     @Nonnull
     public ReactionPaginationAction retrieveReactionUsers(@NotNull String unicode) {
-        return delegate.retrieveReactionUsers(unicode);
+        return delegate.retrieveReactionUsers(Emoji.fromFormatted(unicode));
     }
 
     @Override
     @CheckReturnValue
     @Nullable
     public MessageReaction getReactionByUnicode(@NotNull String unicode) {
-        return delegate.getReactionByUnicode(unicode);
+        return delegate.getReaction(Emoji.fromFormatted(unicode));
     }
 
     @Override
@@ -508,7 +541,7 @@ public class EditableMessage implements Message {
     @Nullable
     public MessageReaction getReactionById(long id) {
         return delegate.getReactionById(id);
-    }
+    } */
 
     @Override
     @CheckReturnValue
@@ -545,6 +578,12 @@ public class EditableMessage implements Message {
         return delegate.isEphemeral();
     }
 
+    @org.jetbrains.annotations.Nullable
+    @Override
+    public ThreadChannel getStartedThread() {
+        return null;
+    }
+
     @Override
     @Nonnull
     public MessageType getType() {
@@ -571,6 +610,12 @@ public class EditableMessage implements Message {
     @Override
     public Message getReferencedMessage() {
         return delegate.getReferencedMessage();
+    }
+
+    @NotNull
+    @Override
+    public Mentions getMentions() {
+        return delegate.getMentions();
     }
 
     @Override

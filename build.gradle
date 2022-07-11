@@ -19,7 +19,7 @@ repositories {
 }
 
 dependencies {
-    compile "net.dv8tion:JDA:5.0.0-alpha.11"
+    compile "net.dv8tion:JDA:5.0.0-alpha.13"
 }
 
 publishing {
